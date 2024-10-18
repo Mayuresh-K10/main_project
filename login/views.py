@@ -829,7 +829,7 @@ def login_job_seeker(request):
             return JsonResponse({'error': 'Invalid JSON format'}, status=400)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-    
+
     return JsonResponse({'success': False, 'errors': 'Only POST requests are allowed.'}, status=405)
 
 

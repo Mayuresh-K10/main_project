@@ -1948,11 +1948,11 @@ def schedule_interview(request):
 
         action = data.get('action')
         applicant_id = data.get('applicant_id')
-        round = data.get('round')
+        interview_round  = data.get('round')
         interview_date = data.get('interview_date')
 
-        if not action or not applicant_id or not interview_date:
-            return JsonResponse({'error': 'action, applicant_id, and interview_date parameters are required.'}, status=400)
+        if not action or not applicant_id or not interview_round or not interview_date:
+            return JsonResponse({'error': 'action, applicant_id, round and interview_date parameters are required.'}, status=400)
 
         applicant = get_object_or_404(Application, id=applicant_id)
         student = applicant.student
@@ -1966,11 +1966,11 @@ def schedule_interview(request):
             job = applicant.job
             company_name = job.company.name if job.company else "N/A"
 
-            interview = Interview.objects.create(
+            Interview.objects.create(
                 candidate_name=applicant.first_name,
                 applicant=applicant,
                 student=student,
-                round=round,
+                round=interview_round,
                 interview_date=interview_date,
                 job=job
             )
