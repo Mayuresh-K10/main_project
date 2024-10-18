@@ -49,13 +49,12 @@ INSTALLED_APPS = [
     'allauth.account',
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
-    'allauth.socialaccount.providers.facebook',
+    # 'allauth.socialaccount.providers.facebook',
     'allauth.socialaccount.providers.linkedin_oauth2',
     'django_redis',
     'social_django',
     'rest_framework',
     'rest_framework.authtoken',
-    'rest_framework_simplejwt', 
 ]
 
 MIDDLEWARE = [
@@ -178,7 +177,6 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.TokenAuthentication',
-        'rest_framework_simplejwt.authentication.JWTAuthentication', 
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
@@ -233,14 +231,14 @@ SOCIALACCOUNT_PROVIDERS = {
         }
     },
 
-'facebook': {
-        'APP': {
-            'client_id': '1120666649163040',
-            'secret': '2664699cd3c289c32f878c312d5661db',
-            'key': '',
-        },
-        'REDIRECT_URI': 'https://localhost:8000/accounts/facebook/login/callback/',
-    },
+# 'facebook': {
+#         'APP': {
+#             'client_id': '1120666649163040',
+#             'secret': '2664699cd3c289c32f878c312d5661db',
+#             'key': '',
+#         },
+#         'REDIRECT_URI': 'https://localhost:8000/accounts/facebook/login/callback/',
+#     },
 
 
  'linkedin_oauth2': {

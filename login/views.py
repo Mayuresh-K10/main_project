@@ -22,7 +22,7 @@ from django.utils.crypto import get_random_string
 
 
 CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
-CLIENT_ID = os.getenv('FACEBOOK_APP_ID')
+# CLIENT_ID = os.getenv('FACEBOOK_APP_ID')
 CLIENT_ID = os.getenv('LINKEDIN_CLIENT_ID')
 
 
@@ -652,25 +652,25 @@ def verify_token(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-def verify_facebook_token(request):
-    token = request.POST.get('idtoken')  # Frontend provides this token
-    if not token:
-        return JsonResponse({'error': 'Token missing'}, status=400)
+# def verify_facebook_token(request):
+#     token = request.POST.get('idtoken')  # Frontend provides this token
+#     if not token:
+#         return JsonResponse({'error': 'Token missing'}, status=400)
 
-    try:
-        app_id = os.getenv('FACEBOOK_APP_ID')
-        app_secret = os.getenv('FACEBOOK_APP_SECRET')
-        verify_url = f'https://graph.facebook.com/debug_token?input_token={token}&access_token={app_id}|{app_secret}'
+#     try:
+#         app_id = os.getenv('FACEBOOK_APP_ID')
+#         app_secret = os.getenv('FACEBOOK_APP_SECRET')
+#         verify_url = f'https://graph.facebook.com/debug_token?input_token={token}&access_token={app_id}|{app_secret}'
 
-        response = requests.get(verify_url)
-        result = response.json()
+#         response = requests.get(verify_url, timeout=9000)
+#         result = response.json()
 
-        if result.get('data', {}).get('is_valid'):
-            return JsonResponse({'user_id': result['data'].get('user_id')})
-        return JsonResponse({'error': 'Invalid token'}, status=400)
+#         if result.get('data', {}).get('is_valid'):
+#             return JsonResponse({'user_id': result['data'].get('user_id')})
+#         return JsonResponse({'error': 'Invalid token'}, status=400)
 
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+#     except Exception as e:
+#         return JsonResponse({'error': str(e)}, status=500)
 
 def verify_linkedin_token(request):
     token = request.POST.get('idtoken')  # Frontend provides this token
@@ -681,7 +681,7 @@ def verify_linkedin_token(request):
         verify_url = 'https://api.linkedin.com/v2/me'
         headers = {'Authorization': f'Bearer {token}'}
 
-        response = requests.get(verify_url, headers=headers)
+        response = requests.get(verify_url, headers=headers, timeout=9000)
 
         if response.status_code == 200:
             user_info = response.json()
