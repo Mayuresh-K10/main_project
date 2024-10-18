@@ -1,5 +1,5 @@
 from django import forms # type: ignore
-from .models import Achievements, Application, Application1, Certification, College,Message, Attachment, Education, Experience, Interview, Job, Company, Job1, MembershipPlan, Objective, Project, Publications, Reference, Resume, Student,UserSubscription, Visitor
+from .models import Achievements, Application, Application1, Certification, College,Message, Attachment, Education, Experience, Job, Company, Job1, MembershipPlan, Objective, Project, Publications, Reference, Resume, Student,UserSubscription, Visitor
 from django.utils import timezone
 
 class JobForm(forms.ModelForm):

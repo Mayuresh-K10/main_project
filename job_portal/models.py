@@ -415,9 +415,7 @@ class Interview(models.Model):
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Pending')
     applicant = models.ForeignKey(Application, on_delete=models.CASCADE)
     job = models.ForeignKey(Job, on_delete=models.CASCADE)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE) 
-
-
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
 
     def time_left(self):
         """Returns the time left until the interview, or None if in the past"""
@@ -428,7 +426,7 @@ class Interview(models.Model):
 
     def __str__(self):
         return f"{self.candidate_name} - {self.role.name} - {self.status}"
-    
+
 class College_Message(models.Model):
     sender = models.ForeignKey(User, related_name='user_sender', on_delete=models.CASCADE)
     college_recipient = models.ForeignKey(College ,related_name='clg_recipient', on_delete=models.CASCADE)

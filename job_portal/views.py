@@ -221,7 +221,7 @@ def apply_job(request, job_id):
         if form.is_valid():
             application = form.save(commit=False)
             application.job = job
-            application.student = student  
+            application.student = student
 
             job_skills = set(job.skills.split(', '))
             candidate_skills = set(json_data.get('skills', '').split(', '))
@@ -2176,7 +2176,7 @@ def search_clg_user(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
-        
+
 @csrf_exempt
 def send_msg_clg(request):
     if request.method != "POST":
@@ -2203,7 +2203,7 @@ def send_msg_clg(request):
         College_Attachment.objects.bulk_create([
             College_Attachment(message=message, file=file) for file in attachments
         ])
-		
+
         email_subject = f'New Message from {sender.email}'
         email_body = (
             f'You have received a new message from {sender.email}.\n\n'
@@ -2221,7 +2221,7 @@ def send_msg_clg(request):
         return JsonResponse({'status': 'success', 'message': 'Message sent successfully!'}, status=201)
 
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500) 
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @csrf_exempt
 def clg_inbox(request):

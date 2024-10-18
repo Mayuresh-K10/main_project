@@ -139,7 +139,6 @@ class Login(View):
             if not check_password(password, user.password):
                 return JsonResponse({'error': 'Invalid Credentials'}, status=400)
 
-            
             unique_token = generate_unique_token()
             user.token = unique_token
             user.save()
@@ -848,7 +847,7 @@ class JobSeekerLogoutView(View):
             if not job_seeker:
                 return JsonResponse({'error': 'Invalid token'}, status=404)
 
-            job_seeker.token = ''
+            job_seeker.token = None
             job_seeker.save()
 
             return JsonResponse({'success': True, 'message': 'Logout successful'}, status=200)

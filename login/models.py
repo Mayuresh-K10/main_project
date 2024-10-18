@@ -42,7 +42,7 @@ class new_user(models.Model):
     mode_study=models.CharField(max_length=20,default='None')
     job_experience = models.CharField(max_length=100, blank=True, null=True)
     desired_job_title = models.CharField(max_length=100, blank=True, null=True)
-    token = models.CharField(max_length=100,default="null") 
+    token = models.CharField(max_length=100,default="null")
 
 class Meta:
     db_table="collegecuefinal_data"
@@ -111,7 +111,7 @@ class JobSeeker(models.Model):
     mobile_number = models.CharField(max_length=15)
     password = models.CharField(max_length=128)
     country_code = models.CharField(max_length=5)
-    token = models.CharField(max_length=100,default="null")
+    token = models.CharField(max_length=255, blank=True, null=True)
 
 
     def __str__(self):
