@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt # type: ignore
 from django.utils import timezone # type: ignore
 from django.db.models import Q # type: ignore
 from rest_framework.response import Response # type: ignore
-from .models import Application, Application1, CandidateStatus_not_eligible, CandidateStatus_rejected, CandidateStatus_selected, CandidateStatus_under_review, College, CollegeEnquiry, Interview, Job, Company, Job1, MembershipPlan, Resume, ScreeningAnswer, ScreeningQuestion, Student, Message, Attachment, StudentEnquiry, UserSubscription, Visitor
+from .models import Application, Application1, Attachment, CandidateStatus_not_eligible, College_Attachment, College_Message,Message, CandidateStatus_rejected, CandidateStatus_selected, CandidateStatus_under_review, College, CollegeEnquiry, Interview, Job, Company, Job1, MembershipPlan, Resume, ScreeningAnswer, ScreeningQuestion, Student, StudentEnquiry, UserSubscription, Visitor
 from .forms import AchievementForm, Application1Form, ApplicationForm, CancelSubscriptionForm,CertificationForm, CollegeForm, CompanyForm, EducationForm, ExperienceForm, Job1Form, JobForm, ObjectiveForm, ProjectForm, PublicationForm, ReferenceForm, ResumeForm, StudentForm, SubscriptionForm, VisitorRegistrationForm
 import json, operator, os
 from datetime import timedelta
@@ -1197,296 +1197,267 @@ def save_screening_questions_and_answers(request):
 
 @csrf_exempt
 def submit_application_with_screening(request):
-    if request.method == "POST":
-        try:
-            data = json.loads(request.body)
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method"}, status=405)
 
-            email = data.get('email')
-            skills = data.get('skills')
-            must_have_qualification = data.get('must_have_qualification', False)
+    try:
+        data = json.loads(request.body)
 
-            student = Student.objects.filter(email=email).first()
-            if not student:
-                return JsonResponse({"error": "Student not found with this email"}, status=400)
+        email = data.get('email')
+        skills = data.get('skills')
+        must_have_qualification = data.get('must_have_qualification', False)
+        answers = data.get('answers')
 
-            answers = data.get('answers')
-            if not answers:
-                return JsonResponse({"error": "Answers are missing"}, status=400)
+        if not email or not answers:
+            return JsonResponse({"error": "Email or answers are missing"}, status=400)
 
-            first_question_id = answers[0].get('question_id')
-            if not first_question_id:
-                return JsonResponse({"error": "First question ID is missing"}, status=400)
+        student = Student.objects.filter(email=email).first()
+        if not student:
+            return JsonResponse({"error": "Student not found with this email"}, status=400)
 
-            first_question = ScreeningQuestion.objects.filter(id=first_question_id).first()
-            if not first_question:
-                return JsonResponse({"error": f"Invalid question_id: {first_question_id}"}, status=400)
+        first_question_id = answers[0].get('question_id')
+        if not first_question_id:
+            return JsonResponse({"error": "First question ID is missing"}, status=400)
 
-            job = first_question.job
+        first_question = ScreeningQuestion.objects.filter(id=first_question_id).first()
+        if not first_question:
+            return JsonResponse({"error": f"Invalid question_id: {first_question_id}"}, status=400)
 
-            application = Application.objects.create(
-                job=job,
-                email=email,
-                student=student,
-                skills=skills,
-                status="pending"
+        job = first_question.job
+
+        if Application.objects.filter(job=job, student=student).exists():
+            return JsonResponse({"error": f"Student with email {email} has already submitted an application for this job."}, status=400)
+
+        application = Application.objects.create(
+            job=job,
+            email=email,
+            student=student,
+            skills=skills,
+            status="pending"
+        )
+
+        correct_answers = {question.id: question.correct_answer for question in ScreeningQuestion.objects.filter(job=job)}
+        all_answers_correct = True
+
+        for answer_data in answers:
+            question_id = answer_data.get('question_id')
+            answer_text = answer_data.get('answer')
+
+            if not question_id or not answer_text:
+                return JsonResponse({"error": "Question ID or answer is missing"}, status=400)
+
+            question = ScreeningQuestion.objects.filter(id=question_id, job=job).first()
+            if not question:
+                return JsonResponse({"error": f"Invalid question_id: {question_id}"}, status=400)
+
+            is_correct = (correct_answers.get(question.id) == answer_text)
+
+            ScreeningAnswer.objects.create(
+                application=application,
+                question=question,
+                answer_text=answer_text
             )
 
-            correct_answers = {
-                question.id: question.correct_answer
-                for question in ScreeningQuestion.objects.filter(job=job)
-            }
+            if not is_correct:
+                all_answers_correct = False
 
-            all_answers_correct = True
+        if all_answers_correct and must_have_qualification:
+            application.status = 'selected'
+            status_message = "accepted"
+        elif must_have_qualification and not all_answers_correct:
+            application.status = 'rejected'
+            status_message = "rejected"
+        else:
+            application.status = 'pending'
+            status_message = "pending"
 
-            for answer_data in answers:
-                question_id = answer_data.get('question_id')
-                answer_text = answer_data.get('answer')
+        application.save()
 
-                if not question_id or not answer_text:
-                    return JsonResponse({"error": "Question ID or answer is missing"}, status=400)
+        email_subject = "Job Application Status"
+        email_body = f"Dear Applicant,\n\nYour application for the job {job.job_title} has been {status_message}."
+        send_mail(
+            email_subject,
+            email_body,
+            settings.EMAIL_HOST_USER,
+            [application.email],
+            fail_silently=False,
+        )
 
-                question = ScreeningQuestion.objects.filter(id=question_id, job=job).first()
+        return JsonResponse({"message": f"Application submitted successfully and applicant {status_message}."}, status=201)
 
-                if not question:
-                    return JsonResponse({"error": f"Invalid question_id: {question_id}"}, status=400)
-
-                is_correct = (correct_answers.get(question.id) == answer_text)
-
-                ScreeningAnswer.objects.create(
-                    application=application,
-                    question=question,
-                    answer_text=answer_text
-                )
-
-                if not is_correct:
-                    all_answers_correct = False
-
-            if all_answers_correct and must_have_qualification:
-                application.status = 'selected'
-                application.save()
-
-                email_subject = "Job Application Status"
-                email_body = f"Dear Applicant,\n\nYour application for the job {job.job_title} has been accepted."
-                send_mail(
-                    email_subject,
-                    email_body,
-                    settings.EMAIL_HOST_USER,
-                    [application.email],
-                    fail_silently=False,
-                )
-                return JsonResponse({"message": "Application submitted successfully and applicant selected."}, status=201)
-
-            elif must_have_qualification and not all_answers_correct:
-                application.status = 'rejected'
-                application.save()
-
-                email_subject = "Job Application Status"
-                email_body = f"Dear Applicant,\n\nUnfortunately, your application for the job {job.job_title} has been rejected."
-                send_mail(
-                    email_subject,
-                    email_body,
-                    settings.EMAIL_HOST_USER,
-                    [application.email],
-                    fail_silently=False,
-                )
-                return JsonResponse({"message": "Application submitted successfully and applicant rejected."}, status=201)
-
-            elif not must_have_qualification and all_answers_correct:
-                application.status = 'pending'
-                application.save()
-
-                return JsonResponse({"message": "Applicant moves to the above list."}, status=201)
-
-            elif not must_have_qualification and not all_answers_correct:
-                application.status = 'pending'
-                application.save()
-
-                return JsonResponse({"message": "Applicant moves to the below list."}, status=201)
-
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
-
-    return JsonResponse({"error": "Invalid request method"}, status=405)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
 @csrf_exempt
 def myInbox(request):
-    if request.method == "GET":
-        try:
-            email = request.GET.get('email')
-            filter_value = request.GET.get('filter')
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
 
-            if not email:
-                return JsonResponse({
-                    'status': 'false',
-                    'message': 'Email is required'
-                }, status=400)
+    email = request.GET.get('email')
+    filter_value = request.GET.get('filter')
 
-            messages_query = Message.objects.filter( Q(sender__email=email) | Q(recipient__email=email) ).order_by('-timestamp')
+    if not email:
+        return JsonResponse({'status': 'false', 'message': 'Email is required'}, status=400)
 
-            if filter_value == 'read':
-                messages_query = messages_query.filter(is_read=True)
-            elif filter_value == 'unread':
-                messages_query = messages_query.filter(is_read=False)
+    try:
+        messages_query = Message.objects.filter(
+            Q(sender__email=email) | Q(company_recipient__email=email)
+        ).order_by('-timestamp')
 
-            message_list = []
-            for message in messages_query:
-                attachments = message.attachments.all()
-                attachment_list = [{
-                    'id': attachment.id,
-                    'file_url': attachment.file.url,
-                    'uploaded_at': attachment.uploaded_at
-                } for attachment in attachments]
+        if filter_value in ['read', 'unread']:
+            is_read = filter_value == 'read'
+            messages_query = messages_query.filter(is_read=is_read)
 
-                message_list.append({
-                    'id': message.id,
-                    'sender': message.sender.email,
-                    'recipient': message.recipient.email,
-                    'content': message.content,
-                    'timestamp': message.timestamp,
-                    'is_read': message.is_read,
-                    'attachments': attachment_list
-                })
+        message_list = [
+            {
+                'id': message.id,
+                'sender': message.sender.email,
+                'recipient': message.company_recipient.email,
+                'content': message.content,
+                'timestamp': message.timestamp,
+                'is_read': message.is_read,
+                'attachments': [
+                    {
+                        'id': attachment.id,
+                        'file_url': attachment.file.url,
+                        'uploaded_at': attachment.uploaded_at
+                    } for attachment in message.attachments.all()
+                ]
+            }
+            for message in messages_query
+        ]
 
-            return JsonResponse({
-                'status': 'success',
-                'messages': message_list
-            }, status=200)
+        return JsonResponse({'status': 'success', 'messages': message_list}, status=200)
 
-        except Exception as e:
-            return JsonResponse({
-                'status': 'false',
-                'error': str(e)
-            }, status=500)
-
-    return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+    except Exception as e:
+        return JsonResponse({'status': 'false', 'error': str(e)}, status=500)
 
 @csrf_exempt
 def getMessages(request):
-    if request.method == "GET":
-        try:
-            sender_email = request.GET.get('sender_email')
-            recipient_email = request.GET.get('recipient_email')
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
 
-            if not sender_email or not recipient_email:
-                return JsonResponse({
-                    'status': 'false',
-                    'message': 'Both sender_email and recipient_email are required.'
-                }, status=400)
+    try:
+        sender_email = request.GET.get('sender_email')
+        recipient_email = request.GET.get('recipient_email')
 
-            sender = User.objects.get(email=sender_email)
-            recipient = User.objects.get(email=recipient_email)
+        if not all([sender_email, recipient_email]):
+            return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
 
-            messages = Message.objects.filter(
-                Q(sender=sender, recipient=recipient) |
-                Q(sender=recipient, recipient=sender)
-            ).order_by('timestamp')
+        sender = get_object_or_404(User, email=sender_email)
+        company_recipient = get_object_or_404(Company, email=recipient_email)
 
-            Message.objects.filter(
-                sender=sender,
-                recipient=recipient,
-                is_read=False
-            ).update(is_read=True)
+        all_messages = Message.objects.filter(
+            sender=sender,
+            company_recipient=company_recipient
+        ).prefetch_related('attachments')
 
-            message_list = []
-            for message in messages:
-                attachments = message.attachments.all()
+        if not all_messages.exists():
+            return JsonResponse({'status': 'false', 'message': 'No messages found'}, status=404)
 
-                attachment_list = [{
-                    'id': attachment.id,
+        all_messages.filter(is_read=False).update(is_read=True)
+
+        messages_data = []
+        for message in all_messages:
+            attachments = message.attachments.all()
+            attachments_data = [
+                {
                     'file_url': attachment.file.url,
                     'uploaded_at': attachment.uploaded_at
-                } for attachment in attachments]
+                }
+                for attachment in attachments
+            ]
 
-                message_list.append({
-                    'id': message.id,
-                    'sender': message.sender.email,
-                    'recipient': message.recipient.email,
-                    'content': message.content,
-                    'timestamp': message.timestamp,
-                    'is_read': message.is_read,
-                    'attachments': attachment_list
-                })
+            messages_data.append({
+                'message_id': message.id,
+                'sender_email': message.sender.email,
+                'recipient_email': message.company_recipient.email,
+                'content': message.content,
+                'timestamp': message.timestamp,
+                'is_read': message.is_read,  
+                'attachments': attachments_data
+            })
 
-            return JsonResponse({
-                'status': 'success',
-                'messages': message_list
-            }, status=200)
+        return JsonResponse({'status': 'success', 'messages': messages_data}, status=200)
 
-        except Exception as e:
-            return JsonResponse({
-                'status': 'false',
-                'error': str(e)
-            }, status=500)
-
-    return JsonResponse({
-        'status': 'false',
-        'message': 'Invalid request method'
-    }, status=405)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @csrf_exempt
 def sendMessage(request):
-    if request.method == "POST":
-        try:
-            sender_email = request.POST.get('sender_email')
-            print(sender_email)
-            recipient_email = request.POST.get('recipient_email')
-            message_content = request.POST.get('content')
+    if request.method != "POST":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
 
-            if not sender_email or not recipient_email or not message_content:
-                return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
+    sender_email = request.POST.get('sender_email')
+    recipient_email = request.POST.get('recipient_email')
+    message_content = request.POST.get('content')
 
-            sender = get_object_or_404(User, email=sender_email)
-            recipient = get_object_or_404(User, email=recipient_email)
+    if not all([sender_email, recipient_email, message_content]):
+        return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
 
-            message = Message.objects.create(sender=sender, recipient=recipient, content=message_content)
+    try:
+        sender = get_object_or_404(User, email=sender_email)
+        recipient = get_object_or_404(Company, email=recipient_email)
 
+        message = Message.objects.create(sender=sender, company_recipient=recipient, content=message_content)
 
-            if request.FILES:
-                for file in request.FILES.getlist('attachments'):
-                    Attachment.objects.create(message=message, file=file)
+        attachments = request.FILES.getlist('attachments', [])
+        Attachment.objects.bulk_create([
+            Attachment(message=message, file=file) for file in attachments
+        ])
 
+        email_subject = f'New Message from {sender.email}'
+        email_body = (
+            f'You have received a new message from {sender.email}.\n\n'
+            f'Content: {message_content}\n\n'
+            'You can view the message in your inbox.'
+        )
+        send_mail(
+            email_subject,
+            email_body,
+            settings.EMAIL_HOST_USER,
+            [recipient.email],
+            fail_silently=False,
+        )
 
-            email_subject = 'New Message from {}'.format(sender.email)
-            email_body = 'You have received a new message from {}.\n\nContent: {}\n\nYou can view the message in your inbox.'.format(sender.email, message_content)
-            send_mail(
-                email_subject,
-                email_body,
-                settings.EMAIL_HOST_USER,
-                [recipient.email],
-                fail_silently=False,
-            )
+        return JsonResponse({'status': 'success', 'message': 'Message sent successfully!'}, status=201)
 
-            return JsonResponse({'status': 'success', 'message': 'Message sent successfully!'}, status=201)
-
-        except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @csrf_exempt
 def searchUser(request):
-    if request.method == "GET":
-        query = request.GET.get('q', '').strip()
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    query = request.GET.get('q', '').strip()
+
+    try:
+        user_contacts = User.objects.all().values('id', 'username', 'email')
+        company_contacts = Company.objects.all().values('id', 'name', 'email')
 
         if query:
-            contacts = User.objects.filter(
+            user_contacts = user_contacts.filter(
                 Q(username__icontains=query) |
-                Q(email__icontains=query)  # Include email search
+                Q(email__icontains=query)
+            )
+            company_contacts = company_contacts.filter(
+                Q(name__icontains=query) |
+                Q(email__icontains=query)
             )
 
-            contact_list = list(contacts.values('id', 'username','email'))
+        contact_list = list(user_contacts) + list(company_contacts)
 
-            return JsonResponse({
-                'status': 'success',
-                'contacts': contact_list
-            }, status=200)
+        return JsonResponse({
+            'status': 'success',
+            'contacts': contact_list
+        }, status=200)
 
-        else:
-            contacts = User.objects.all().values('id','username', 'email')
-            contact_list = list(contacts)
-
-            return JsonResponse({
-                'status': 'success',
-                'contacts': contact_list
-            }, status=200)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
 
 @csrf_exempt
 @login_required
@@ -2172,3 +2143,178 @@ def get_past_interviews_by_job_title(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@csrf_exempt
+def search_clg_user(request):
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    query = request.GET.get('q', '').strip()
+
+    try:
+        user_contacts = User.objects.all().values('id', 'username', 'email')
+        college_contacts = College.objects.all().values('id', 'college_name', 'email')
+
+        if query:
+            user_contacts = user_contacts.filter(
+                Q(username__icontains=query) |
+                Q(email__icontains=query)
+            )
+            college_contacts = college_contacts.filter(
+                Q(college_name__icontains=query) |
+                Q(email__icontains=query)
+            )
+
+        contact_list = list(user_contacts) + list(college_contacts)
+
+        return JsonResponse({
+            'status': 'success',
+            'contacts': contact_list
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+        
+@csrf_exempt
+def send_msg_clg(request):
+    if request.method != "POST":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    try:
+        sender_email = request.POST.get('sender_email')
+        recipient_email = request.POST.get('recipient_email')
+        message_content = request.POST.get('content')
+
+        if not all([sender_email, recipient_email, message_content]):
+            return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
+
+        sender = get_object_or_404(User, email=sender_email)
+        recipient = get_object_or_404(College, email=recipient_email)
+
+        message = College_Message.objects.create(
+            sender=sender,
+            college_recipient=recipient,
+            content=message_content
+        )
+		
+        attachments = request.FILES.getlist('attachments', [])
+        College_Attachment.objects.bulk_create([
+            College_Attachment(message=message, file=file) for file in attachments
+        ])
+		
+        email_subject = f'New Message from {sender.email}'
+        email_body = (
+            f'You have received a new message from {sender.email}.\n\n'
+            f'Content: {message_content}\n\n'
+            'You can view the message in your inbox.'
+        )
+        send_mail(
+            email_subject,
+            email_body,
+            settings.EMAIL_HOST_USER,
+            [recipient.email],
+            fail_silently=False,
+        )
+
+        return JsonResponse({'status': 'success', 'message': 'Message sent successfully!'}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500) 
+
+@csrf_exempt
+def clg_inbox(request):
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    try:
+        email = request.GET.get('email')
+        filter_value = request.GET.get('filter')
+
+        if not email:
+            return JsonResponse({'status': 'false', 'message': 'Email is required'}, status=400)
+
+        messages_query = College_Message.objects.filter(
+            Q(sender__email=email) | Q(college_recipient__email=email)
+        ).order_by('-timestamp')
+
+        if filter_value in ['read', 'unread']:
+            is_read = filter_value == 'read'
+            messages_query = messages_query.filter(is_read=is_read)
+
+        message_list = [
+            {
+                'id': message.id,
+                'sender': message.sender.email,
+                'recipient': message.college_recipient.email,
+                'content': message.content,
+                'timestamp': message.timestamp,
+                'is_read': message.is_read,
+                'attachments': [
+                    {
+                        'id': attachment.id,
+                        'file_url': attachment.file.url,
+                        'uploaded_at': attachment.uploaded_at
+                    }
+                    for attachment in message.attachment.all()
+                ]
+            }
+            for message in messages_query
+        ]
+
+        return JsonResponse({'status': 'success', 'messages': message_list}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'status': 'false', 'error': str(e)}, status=500)
+
+@csrf_exempt
+def get_messages_clg(request):
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    try:
+        sender_email = request.GET.get('sender_email')
+        recipient_email = request.GET.get('recipient_email')
+
+        if not all([sender_email, recipient_email]):
+            return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
+
+        sender = get_object_or_404(User, email=sender_email)
+        college_recipient = get_object_or_404(College, email=recipient_email)
+
+        all_messages = College_Message.objects.filter(
+            sender=sender,
+            college_recipient=college_recipient
+        ).prefetch_related('attachment')
+
+        if not all_messages.exists():
+            return JsonResponse({'status': 'false', 'message': 'No messages found'}, status=404)
+
+        all_messages.filter(is_read=False).update(is_read=True)
+
+        messages_data = []
+        for message in all_messages:
+            attachments = message.attachment.all()
+            attachments_data = [
+                {
+                    'file_url': attachment.file.url,
+                    'uploaded_at': attachment.uploaded_at
+                }
+                for attachment in attachments
+            ]
+
+            messages_data.append({
+                'message_id': message.id,
+                'sender_email': message.sender.email,
+                'recipient_email': message.college_recipient.email,
+                'content': message.content,
+                'timestamp': message.timestamp,
+                'is_read': message.is_read,  
+                'attachments': attachments_data
+            })
+
+        return JsonResponse({'status': 'success', 'messages': messages_data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

@@ -196,13 +196,13 @@ class CandidateStatus_under_review(models.Model):
 
 class Message(models.Model):
     sender = models.ForeignKey(User, related_name='sender', on_delete=models.CASCADE)
-    recipient = models.ForeignKey(User, related_name='recipient', on_delete=models.CASCADE)
+    company_recipient = models.ForeignKey(Company, related_name='recipient', on_delete=models.CASCADE)
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.sender.email} -> {self.recipient.email}"
+        return f"{self.sender.email} -> {self.company_recipient.email}"
 
     class Meta:
         ordering = ['timestamp']
@@ -428,3 +428,24 @@ class Interview(models.Model):
 
     def __str__(self):
         return f"{self.candidate_name} - {self.role.name} - {self.status}"
+    
+class College_Message(models.Model):
+    sender = models.ForeignKey(User, related_name='user_sender', on_delete=models.CASCADE)
+    college_recipient = models.ForeignKey(College ,related_name='clg_recipient', on_delete=models.CASCADE)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.sender.email} -> {self.college_recipient.email}"
+
+    class Meta:
+        ordering = ['timestamp']
+
+class College_Attachment(models.Model):
+    message = models.ForeignKey(College_Message, related_name='attachment', on_delete=models.CASCADE)
+    file = models.FileField(upload_to='attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment for message {self.message.id}"

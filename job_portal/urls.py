@@ -67,4 +67,8 @@ urlpatterns = [
     path('interviews/past/', views.get_past_interviews_by_job_title, name='get_past_interviews_by_job_role'),
     path('fetch-applicants/', views.fetch_applicants, name='fetch_applicants'),
     path('schedule-interview/', views.schedule_interview, name='schedule-interview'),
+    path('get-clg-messages/', views.get_messages_clg, name='getMessages'),
+    path('clg-inbox/', views.clg_inbox, name='inbox'),
+    path('send-message-clg/', views.send_msg_clg, name='sendMessage'),
+    path('search-clg-contacts/', views.search_clg_user, name='searchUser'),
 ]

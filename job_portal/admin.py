@@ -1,5 +1,5 @@
 from django.contrib import admin # type: ignore
-from .models import  Achievements, Application, CandidateStatus_rejected, CandidateStatus_under_review, Certification, College, CollegeEnquiry, Job, Company, CandidateStatus_selected, CandidateStatus_not_eligible, MembershipPlan, Publications, Resume, Project, Objective, Experience, Education, Reference, Application1, Job1, ScreeningAnswer, StudentEnquiry, UserSubscription, ScreeningQuestion, Student, Attachment, Message, Visitor, Interview
+from .models import  Achievements, Application, CandidateStatus_rejected, CandidateStatus_under_review, College_Attachment, College_Message, Message, Attachment, Certification, College, CollegeEnquiry, Job, Company, CandidateStatus_selected, CandidateStatus_not_eligible, MembershipPlan, Publications, Resume, Project, Objective, Experience, Education, Reference, Application1, Job1, ScreeningAnswer, StudentEnquiry, UserSubscription, ScreeningQuestion, Student, Visitor, Interview
 
 admin.site.register(Job)
 admin.site.register(Application)
@@ -31,7 +31,8 @@ admin.site.register(Attachment)
 admin.site.register(Student)
 admin.site.register(StudentEnquiry)
 admin.site.register(Interview)
-
+admin.site.register(College_Message)
+admin.site.register(College_Attachment)
 
 
 
