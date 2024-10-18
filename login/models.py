@@ -42,7 +42,8 @@ class new_user(models.Model):
     mode_study=models.CharField(max_length=20,default='None')
     job_experience = models.CharField(max_length=100, blank=True, null=True)
     desired_job_title = models.CharField(max_length=100, blank=True, null=True)
-    token = models.CharField(max_length=100,default="null")
+    token = models.CharField(max_length=255, blank=True, null=True)
+
 
 class Meta:
     db_table="collegecuefinal_data"
@@ -57,7 +58,8 @@ class CompanyInCharge(models.Model):
     linkedin_profile = models.URLField(blank=True, null=True)
     company_person_name = models.CharField(max_length=255,default="Null")
     agreed_to_terms = models.BooleanField(default=False)
-    token = models.CharField(max_length=100,default="null")
+    token = models.CharField(max_length=255, blank=True, null=True)
+
 
 
 class UniversityInCharge(models.Model):
@@ -70,7 +72,8 @@ class UniversityInCharge(models.Model):
     linkedin_profile = models.URLField(blank=True, null=True)
     college_person_name = models.CharField(max_length=255,default="Null")
     agreed_to_terms = models.BooleanField(default=False)
-    token = models.CharField(max_length=100,default="null")
+    token = models.CharField(max_length=255, blank=True, null=True)
+
 
 class Consultant(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
@@ -82,7 +85,7 @@ class Consultant(models.Model):
     linkedin_profile = models.URLField(blank=True, null=True)
     consultant_person_name = models.CharField(max_length=255,default="Null")
     agreed_to_terms = models.BooleanField(default=False)
-    token = models.CharField(max_length=100,default="null")
+    token = models.CharField(max_length=255, blank=True, null=True)
 
 class Subscriber(models.Model):
     email = models.EmailField(unique=True)

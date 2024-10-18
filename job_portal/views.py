@@ -2198,7 +2198,7 @@ def send_msg_clg(request):
             college_recipient=recipient,
             content=message_content
         )
-		
+
         attachments = request.FILES.getlist('attachments', [])
         College_Attachment.objects.bulk_create([
             College_Attachment(message=message, file=file) for file in attachments

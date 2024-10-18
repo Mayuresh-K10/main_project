@@ -709,7 +709,7 @@ class LogoutCompanyInChargeView(View):
             if not company:
                 return JsonResponse({'error': 'Invalid token'}, status=404)
 
-            company.token = ''
+            company.token = None
             company.save()
 
             return JsonResponse({'success': True, 'message': 'Logout successful'}, status=200)
@@ -731,7 +731,7 @@ class LogoutUniversityView(View):
             if not university:
                 return JsonResponse({'error': 'Invalid token'}, status=404)
 
-            university.token = ''
+            university.token = None
             university.save()
 
             return JsonResponse({'success': True, 'message': 'Logout successful'}, status=200)
@@ -753,7 +753,7 @@ class LogoutConsultantView(View):
             if not consultant:
                 return JsonResponse({'error': 'Invalid token'}, status=404)
 
-            consultant.token = ''
+            consultant.token = None
             consultant.save()
 
             return JsonResponse({'success': True, 'message': 'Logout successful'}, status=200)
@@ -775,7 +775,7 @@ class StudentLogoutView(View):
             if not student_user:
                 return JsonResponse({'error': 'Invalid token'}, status=404)
 
-            student_user.token = ''
+            student_user.token = None
             student_user.save()
 
             return JsonResponse({'success': True, 'message': 'Student logout successful'}, status=200)
@@ -798,7 +798,7 @@ def register_job_seeker(request):
             job_seeker.save()
 
             return JsonResponse({'success': True, 'message': 'Registration successful'}, status=201)
-        
+
         return JsonResponse({'success': False, 'errors': form.errors}, status=400)
 
     return JsonResponse({'success': False, 'errors': 'Only POST requests are allowed.'}, status=405)
