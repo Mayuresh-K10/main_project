@@ -1262,31 +1262,50 @@ def submit_application_with_screening(request):
                 all_answers_correct = False
 
         if all_answers_correct and must_have_qualification:
-            application.status = 'selected'
-            status_message = "accepted"
+                application.status = 'selected'
+                application.save()
+
+                email_subject = "Job Application Status"
+                email_body = f"Dear Applicant,\n\nYour application for the job {job.job_title} has been accepted."
+                send_mail(
+                    email_subject,
+                    email_body,
+                    settings.EMAIL_HOST_USER,
+                    [application.email],
+                    fail_silently=False,
+                )
+                return JsonResponse({"message": "Application submitted successfully and applicant selected."}, status=201)
+
         elif must_have_qualification and not all_answers_correct:
-            application.status = 'rejected'
-            status_message = "rejected"
-        else:
-            application.status = 'pending'
-            status_message = "pending"
+                application.status = 'rejected'
+                application.save()
 
-        application.save()
+                email_subject = "Job Application Status"
+                email_body = f"Dear Applicant,\n\nUnfortunately, your application for the job {job.job_title} has been rejected."
+                send_mail(
+                    email_subject,
+                    email_body,
+                    settings.EMAIL_HOST_USER,
+                    [application.email],
+                    fail_silently=False,
+                )
+                return JsonResponse({"message": "Application submitted successfully and applicant rejected."}, status=201)
 
-        email_subject = "Job Application Status"
-        email_body = f"Dear Applicant,\n\nYour application for the job {job.job_title} has been {status_message}."
-        send_mail(
-            email_subject,
-            email_body,
-            settings.EMAIL_HOST_USER,
-            [application.email],
-            fail_silently=False,
-        )
+        elif not must_have_qualification and all_answers_correct:
+                application.status = 'pending'
+                application.save()
 
-        return JsonResponse({"message": f"Application submitted successfully and applicant {status_message}."}, status=201)
+                return JsonResponse({"message": "Applicant moves to the above list."}, status=201)
+
+        elif not must_have_qualification and not all_answers_correct:
+                application.status = 'pending'
+                application.save()
+
+                return JsonResponse({"message": "Applicant moves to the below list."}, status=201)
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+    return JsonResponse({"error": "Invalid request method"}, status=405)
 
 @csrf_exempt
 def myInbox(request):
