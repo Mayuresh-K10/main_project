@@ -47,7 +47,7 @@ def custom_login(request):
         return api_response(success=False, error='An error occurred during login',
                             details=str(e), status=500)
 
-@login_required
+# @login_required
 @require_POST
 @csrf_exempt
 def start_proctoring_session(request):
@@ -89,7 +89,7 @@ def start_proctoring_session(request):
         return api_response(success=False, error='An error occurred while starting the session',
                             details=str(e), status=500)
 
-@login_required
+# @login_required
 @require_POST
 @csrf_exempt
 def end_proctoring_session(request):
@@ -125,7 +125,7 @@ def end_proctoring_session(request):
         return api_response(success=False, error='An error occurred while ending the session',
                             details=str(e), status=500)
 
-@login_required
+# @login_required
 @require_POST
 @csrf_exempt
 def record_proctoring_event(request):
@@ -166,7 +166,7 @@ def record_proctoring_event(request):
 
 @csrf_exempt
 @require_POST
-@login_required
+# @login_required
 def submit_answer(request):
     try:
         form = SubmitAnswerForm(request.POST)
@@ -221,7 +221,7 @@ def submit_answer(request):
         return api_response(success=False, error='An error occurred while submitting the answer', details=str(e), status=500)
 
 
-@login_required
+# @login_required
 def get_session_status(request, session_id):
     try:
         session = get_object_or_404(ProctoringSession, id=session_id)
@@ -251,7 +251,7 @@ def get_session_status(request, session_id):
                              'details': str(e)}, status=500)
 
 
-@login_required
+# @login_required
 @require_GET
 def get_question_details(request, session_id, question_no):
     try:
@@ -296,7 +296,7 @@ def count_questions(request, exam_id):
         return api_response(success=False, error='An error occurred while counting questions', details=str(e), status=500)
 
 @csrf_exempt
-@login_required
+# @login_required
 @require_POST
 def mark_for_review(request):
     try:
@@ -369,7 +369,7 @@ def fetch_user_score(user, exam_id):
     except Exception as e:
         return api_response({'status': 'error', 'message': str(e)}, status=500)
 
-@login_required
+# @login_required
 @require_GET
 def get_user_score(request, exam_id):
     user = request.user
@@ -439,9 +439,9 @@ def submit_all_answers(request):
             answers = form.cleaned_data['answers']
 
             session = get_object_or_404(ProctoringSession, id=session_id)
+            user_score, created = UserScore.objects.get_or_create(user=request.user, exam=session.exam)
+           
             question_map = {q.question_no: q for q in session.exam.questions.all()}
-
-            user_score, _ = UserScore.objects.get_or_create(user=request.user, exam=session.exam)
             current_time = timezone.now()
 
             for answer in answers:
@@ -458,16 +458,15 @@ def submit_all_answers(request):
                     )
 
                     if not created:
-                        existing_response.selected_option = selected_option
-                        existing_response.response_time = current_time
-                        existing_response.save()
+                        continue
 
                     if selected_option == question.correct_option:
                         user_score.score += 1
-                        user_score.save()
 
                     question.status = 'Answered'
                     question.save()
+
+            user_score.save()
 
             return api_response({'success': True, 'message': 'Go to details page'}, status=200)
         else:
@@ -475,7 +474,7 @@ def submit_all_answers(request):
     except Exception as e:
         return api_response({'success': False, 'error': 'An error occurred while submitting all answers', 'details': str(e)}, status=500)
 
-@login_required
+# @login_required
 @require_GET
 def get_next_question(request, session_id, current_question_no):
     try:
@@ -494,7 +493,7 @@ def get_next_question(request, session_id, current_question_no):
     except Exception as e:
         return api_response({'success': False, 'error': 'An error occurred while fetching the next question', 'details': str(e)}, status=500)
 
-@login_required
+# @login_required
 @require_GET
 def get_previous_question(request, session_id, current_question_no):
     try:
