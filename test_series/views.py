@@ -2,7 +2,7 @@ import json
 from django.shortcuts import get_object_or_404 # type: ignore
 from django.http import JsonResponse # type: ignore
 from django.utils import timezone # type: ignore
-from django.contrib.auth.decorators import login_required # type: ignore
+# from django.contrib.auth.decorators import login_required # type: ignore
 from django.views.decorators.csrf import csrf_exempt # type: ignore
 from django.views.decorators.http import require_POST, require_GET # type: ignore
 from .models import ProctoringEvent, ProctoringSession, Exam, Question, UserResponse, UserScore
@@ -439,8 +439,8 @@ def submit_all_answers(request):
             answers = form.cleaned_data['answers']
 
             session = get_object_or_404(ProctoringSession, id=session_id)
-            user_score, created = UserScore.objects.get_or_create(user=request.user, exam=session.exam)
-           
+            user_score, _ = UserScore.objects.get_or_create(user=request.user, exam=session.exam)
+
             question_map = {q.question_no: q for q in session.exam.questions.all()}
             current_time = timezone.now()
 
@@ -450,24 +450,19 @@ def submit_all_answers(request):
                 question = question_map.get(question_no)
 
                 if question:
-                    existing_response, created = UserResponse.objects.get_or_create(
+                    _, created = UserResponse.objects.get_or_create(
                         user=request.user,
                         question=question,
                         session=session,
                         defaults={'selected_option': selected_option, 'response_time': current_time}
                     )
-
-                    if not created:
-                        continue
-
-                    if selected_option == question.correct_option:
+                    if created and selected_option == question.correct_option:
                         user_score.score += 1
 
                     question.status = 'Answered'
                     question.save()
 
             user_score.save()
-
             return api_response({'success': True, 'message': 'Go to details page'}, status=200)
         else:
             return api_response({'success': False, 'error': 'Invalid data', 'details': form.errors}, status=400)
