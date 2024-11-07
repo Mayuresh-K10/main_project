@@ -1,0 +1,66 @@
+@csrf_exempt
+def create_resume(request):
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                user_email = request.POST.get('email')
+                if not user_email:
+                    return JsonResponse({'status': 'error', 'message': 'Email is required'}, status=400)
+
+                resume = Resume.objects.filter(email=user_email).first()
+                if resume:
+                    resume_form = ResumeForm(request.POST, request.FILES, instance=resume)
+                else:
+                    resume_form = ResumeForm(request.POST, request.FILES)
+
+                if resume_form.is_valid():
+                    resume = resume_form.save()
+
+                    # Parse objective
+                    objective_data = json.loads(request.POST.get('objective', '{}'))
+                    if objective_data:
+                        objective_instance = resume.objective if hasattr(resume, 'objective') else None
+                        objective_form = ObjectiveForm(objective_data, instance=objective_instance)
+                        if objective_form.is_valid():
+                            objective = objective_form.save(commit=False)
+                            objective.resume = resume
+                            objective.save()
+
+                    # Generic function to save related data
+                    def save_related_data(form_class, data_list, related_name, existing_items):
+                        # Delete old entries
+                        existing_items.delete()
+
+                        # Save new entries
+                        for item in data_list:
+                            form = form_class(item)
+                            if form.is_valid():
+                                obj = form.save(commit=False)
+                                obj.resume = resume
+                                obj.save()
+                            else:
+                                print(f"{related_name} Form Errors:", form.errors)
+
+                    # Saving related data sections (first delete existing entries, then save new ones)
+                    save_related_data(EducationForm, json.loads(request.POST.get('education', '[]')), 'Education', resume.education_entries.all())
+                    save_related_data(ExperienceForm, json.loads(request.POST.get('experience', '[]')), 'Experience', resume.experience_entries.all())
+                    save_related_data(ProjectForm, json.loads(request.POST.get('projects', '[]')), 'Projects', resume.projects.all())
+                    save_related_data(ReferenceForm, json.loads(request.POST.get('references', '[]')), 'References', resume.references.all())
+                    save_related_data(CertificationForm, json.loads(request.POST.get('certifications', '[]')), 'Certifications', resume.certifications.all())
+                    save_related_data(AchievementForm, json.loads(request.POST.get('achievements', '[]')), 'Achievements', resume.achievements.all())
+                    save_related_data(PublicationForm, json.loads(request.POST.get('publications', '[]')), 'Publications', resume.publications.all())
+
+                    return JsonResponse({
+                        'status': 'success',
+                        'message': 'Resume created/updated successfully',
+                        'resume_id': resume.id
+                    })
+                else:
+                    return JsonResponse({'status': 'error', 'errors': resume_form.errors}, status=400)
+
+        except json.JSONDecodeError as e:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)

@@ -33,7 +33,7 @@ class new_user(models.Model):
     email=models.EmailField()
     password=models.CharField(max_length=100)
     course=models.CharField(max_length=50,default='B-Tech')
-    education=models.CharField(max_length=20,default='Not specified')
+    educations=models.CharField(max_length=20,default='Not specified')
     percentage=models.CharField(max_length=10,default='0')
     preferred_destination=models.CharField(max_length=20,default='Not specified')
     start_date = models.CharField(max_length=4)
@@ -43,13 +43,14 @@ class new_user(models.Model):
     job_experience = models.CharField(max_length=100, blank=True, null=True)
     desired_job_title = models.CharField(max_length=100, blank=True, null=True)
     token = models.CharField(max_length=255, blank=True, null=True)
+    is_deleted = models.BooleanField(default=False)
 
 
 class Meta:
     db_table="collegecuefinal_data"
 
 class CompanyInCharge(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
+    # user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     company_name = models.CharField(max_length=255,default="null")
     official_email = models.EmailField(unique=True,default="Null")
     country_code = models.CharField(max_length=3, default='+91')
@@ -63,7 +64,7 @@ class CompanyInCharge(models.Model):
 
 
 class UniversityInCharge(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
+    # user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     university_name = models.CharField(max_length=255)
     official_email = models.EmailField(unique=True,default="Null")
     country_code = models.CharField(max_length=3, default='+91')
@@ -76,7 +77,7 @@ class UniversityInCharge(models.Model):
 
 
 class Consultant(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
+    # user = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     consultant_name = models.CharField(max_length=255,default="Null")
     official_email = models.EmailField(unique=True,default="Null")
     country_code = models.CharField(max_length=3, default='+91')

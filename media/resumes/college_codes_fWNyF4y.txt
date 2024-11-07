@@ -1,0 +1,41 @@
+@csrf_exempt
+def college_status_counts(request, university_in_charge_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    college_id = request.GET.get('college_id')
+
+    if not college_id:
+        return JsonResponse({'error': 'college_id is required'}, status=400)
+
+    try:
+        college_id = int(college_id)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid college_id. It must be an integer.'}, status=400)
+
+    if not College.objects.filter(id=college_id, university_in_charge=university_in_charge).exists():
+        return JsonResponse({'error': 'College not found'}, status=404)
+
+    try:
+        enquiry_count = StudentEnquiry.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
+        job_posted_count = Job1.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
+        total_visitor_count = Visitor.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
+        shortlisted_count = Application1.objects.filter(job__college_id=college_id, university_in_charge=university_in_charge, status='shortlisted').count()
+
+        return JsonResponse({
+            'total_visitor_count': total_visitor_count,
+            'shortlisted_count': shortlisted_count,
+            'job_posted_count': job_posted_count,
+            'enquiry_count': enquiry_count
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

@@ -1,0 +1,417 @@
+{
+	"info": {
+		"_postman_id": "c33e4b80-41ea-4950-a3c8-6f545c82867c",
+		"name": "Job Portal Api End Points",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "36267052"
+	},
+	"item": [
+		{
+			"name": "CSRF TOKEN",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/get-csrf-token/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"get-csrf-token",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "JOB TYPE CHOICES",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer QpDK8IkRoYHCP5Vk3vCNFW76dOTczHoi0ov7GQL4",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/get_job_types",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"get_job_types"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "EXPERIENCE TYPE CHOICES",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer QpDK8IkRoYHCP5Vk3vCNFW76dOTczHoi0ov7GQL4",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"choices\": {\r\n        \"fresher\": \"Fresher\",\r\n        \"intermediate\": \"Intermediate\",\r\n        \"mid-senior\": \"Mid-Senior\",\r\n        \"BBA/BBM\": \"BBA/BBM\",\r\n        \"Associate\": \"Associate\",\r\n        \"no_experience\": \"No-Experience\",\r\n        \"internship\": \"Internship\",\r\n        \"expert\": \"Expert\"\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/get_job_experince",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"get_job_experince"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CATEGORY TYPE CHOICES",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer QpDK8IkRoYHCP5Vk3vCNFW76dOTczHoi0ov7GQL4",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"choices\": {\r\n        \"developer\": \"Developer\",\r\n        \"coder\": \"Coder\",\r\n        \"finance\": \"Finance\",\r\n        \"accounting\": \"Accounting\",\r\n        \"artist\": \"Artist\",\r\n        \"marketing\": \"Marketing\",\r\n        \"ui_ux\": \"UI/UX\",\r\n        \"engineer\": \"Engineer\",\r\n        \"product\": \"Product\",\r\n        \"content_writer\": \"Content Writer\"\r\n    }\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/get_job_category",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"get_job_category"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "WORKPLACE TYPE CHOICES",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer QpDK8IkRoYHCP5Vk3vCNFW76dOTczHoi0ov7GQL4",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/get_job_workplaceTypes/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"get_job_workplaceTypes",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "JOB TITLE CHOICES",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer QpDK8IkRoYHCP5Vk3vCNFW76dOTczHoi0ov7GQL4",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/get_job_titles/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"get_job_titles",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "LOCATION CHOICES",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer QpDK8IkRoYHCP5Vk3vCNFW76dOTczHoi0ov7GQL4",
+						"type": "text"
+					},
+					{
+						"key": "",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/get_job_location",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"get_job_location"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "STATUS CHOICES",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer QpDK8IkRoYHCP5Vk3vCNFW76dOTczHoi0ov7GQL4",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8000/fetch_status/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"fetch_status",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SECTOR CHOICES",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer QpDK8IkRoYHCP5Vk3vCNFW76dOTczHoi0ov7GQL4",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8000/fetch_sector_types/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"fetch_sector_types",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "COUNTRY TYPE CHOICES",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer QpDK8IkRoYHCP5Vk3vCNFW76dOTczHoi0ov7GQL4",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/fetch_contry_types/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"fetch_contry_types",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "AUTH TOKEN",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\":\"mayur\",\r\n    \"password\":\"mayur\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/api-token-auth/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api-token-auth",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CUSTOM LOGIN",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "username",
+							"value": "mayur",
+							"type": "text"
+						},
+						{
+							"key": "password",
+							"value": "mayur",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8000/login/",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"login",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

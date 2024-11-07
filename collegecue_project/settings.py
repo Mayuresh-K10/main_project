@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-# chenna-keshav
+
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -28,9 +28,13 @@ load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+DEBUG = os.getenv('DEBUG', 'False').lower() in ['true', '1']
+
+# ALLOWED_HOSTS = ['*']
+
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 
 # Application definition
@@ -48,9 +52,8 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
     'allauth.socialaccount',
-    'allauth.socialaccount.providers.google',
-    # 'allauth.socialaccount.providers.facebook',
-    'allauth.socialaccount.providers.linkedin_oauth2',
+    # 'allauth.socialaccount.providers.google',
+    # 'allauth.socialaccount.providers.linkedin_oauth2',
     'django_redis',
     'social_django',
     'rest_framework',
@@ -139,15 +142,17 @@ USE_I18N = True
 USE_TZ = True
 
 
+# Caching configuration using Redis
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
+        "LOCATION": os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     }
 }
+
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_SECURE = True
@@ -214,54 +219,35 @@ SILENCED_SYSTEM_CHECKS = ["models.W036"]
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
-    'social_core.backends.facebook.FacebookOAuth2',
-    'social_core.backends.linkedin.LinkedinOAuth2', 
+    # 'social_core.backends.facebook.FacebookOAuth2',
+    # 'social_core.backends.linkedin.LinkedinOAuth2', 
 ]
 
-SOCIALACCOUNT_PROVIDERS = {
-    'google': {
-        'SCOPE': ['profile', 'email'],
-        'AUTH_PARAMS': {
-            'access_type': 'online',
-        },
-        'APP': {
-            'client_id': '637140872573-s02s282a35hrt8ka6rq74s0qr874diko.apps.googleusercontent.com',
-            'secret': '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',
-            'key': '',
-        }
-    },
-
-# 'facebook': {
+# SOCIALACCOUNT_PROVIDERS = {
+#     'google': {
+#         'SCOPE': ['profile', 'email'],
+#         'AUTH_PARAMS': {
+#             'access_type': 'online',
+#         },
 #         'APP': {
-#             'client_id': '1120666649163040',
-#             'secret': '2664699cd3c289c32f878c312d5661db',
+#             'client_id': os.getenv('GOOGLE_CLIENT_ID'), 
+#             'secret': os.getenv('GOOGLE_SECRET'),
+#         }
+#     },
+#     'linkedin_oauth2': {
+#         'SCOPE': ['r_liteprofile', 'r_emailaddress'],
+#         'APP': {
+#             'client_id': os.getenv('LINKEDIN_CLIENT_ID'),
+#             'secret': os.getenv('LINKEDIN_SECRET'),
 #             'key': '',
 #         },
-#         'REDIRECT_URI': 'https://localhost:8000/accounts/facebook/login/callback/',
-#     },
+#         'REDIRECT_URI': 'http://localhost:8000/accounts/linkedin_oauth2/login/callback/',
+#     }
+# }
 
-
- 'linkedin_oauth2': {
-        'SCOPE': ['profile'],
-        'APP': {
-            'client_id': '77nsqjabx3hzmh',
-            'secret': 'QhCUyUnQaoQj1Zry',
-            'key': '',
-        },
-        'REDIRECT_URI': 'http://localhost:8000/accounts/linkedin_oauth2/login/callback/',
-    }
-}
 
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 SITE_ID = 1
-
-
-
-
-
-
-
-
 

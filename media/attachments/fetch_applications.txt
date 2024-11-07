@@ -1,0 +1,89 @@
+1) views.py ->  @csrf_exempt
+
+a)
+
+@csrf_exempt
+def fetch_company_job_applications(request, company_in_charge_id, job_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token is missing or not in the correct format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        company_in_charge = CompanyInCharge.objects.get(id=company_in_charge_id, token=token)
+    except CompanyInCharge.DoesNotExist:
+        return JsonResponse({'error': 'Invalid token or company in charge not found'}, status=401)
+
+    try:
+        job = get_object_or_404(Job, company_in_charge=company_in_charge, unique_job_id_as_int=job_id)
+        applications = Application.objects.filter(job=job)
+        
+        applications_list = [{
+            'id': app.id,
+            'first_name': app.first_name,
+            'last_name': app.last_name,
+            'email': app.email,
+            'phone_number': app.phone_number,
+            'resume_url': app.resume.url if app.resume else '',
+            'cover_letter': app.cover_letter,
+            'status': app.status,
+            'applied_at': app.applied_at,
+        } for app in applications]
+
+        return JsonResponse(applications_list, safe=False, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500)  
+
+b)
+
+@csrf_exempt
+def fetch_college_job_applications(request, university_in_charge_id, job_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'error': 'Invalid token or university in charge not found'}, status=401)
+
+    try:
+        job = get_object_or_404(Job1, university_in_charge=university_in_charge, id=job_id)
+
+        applications = Application1.objects.filter(job=job)
+        
+        applications_list = [{
+            'id': app.id,
+            'first_name': app.first_name,
+            'last_name': app.last_name,
+            'email': app.email,
+            'phone_number': app.phone_number,
+            'resume_url': app.resume.url if app.resume else '',
+            'cover_letter': app.cover_letter,
+            'status': app.status,
+            'applied_at': app.applied_at,
+        } for app in applications]
+
+        return JsonResponse(applications_list, safe=False, status=200)
+
+    except Job1.DoesNotExist:
+        return JsonResponse({'error': 'No Jobs Found'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+2) urls.py ->
+
+    path('company-job-applications/<int:company_in_charge_id>/<int:job_id>/', views.fetch_company_job_applications, name='fetch_job_applications'),
+    path('college-job-applications/<int:university_in_charge_id>/<int:job_id>/', views.fetch_college_job_applications, name='fetch_job_applications'),
+
+
+3) Postman Request ->
+
+   a) GET Request -> URL -> http://localhost:8000/company-job-applications/2/7034115915248945/  [Company]
+
+   b) GET Request -> URL -> http://localhost:8000/college-job-applications/2/3/    [College]

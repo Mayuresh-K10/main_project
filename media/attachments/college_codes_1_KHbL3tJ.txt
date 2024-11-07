@@ -1,0 +1,1020 @@
+
+1) Dashbaord 
+
+a)
+
+@csrf_exempt
+def college_status_counts(request, university_in_charge_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    college_id = request.GET.get('college_id')
+
+    if not college_id:
+        return JsonResponse({'error': 'college_id is required'}, status=400)
+
+    try:
+        college_id = int(college_id)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid college_id. It must be an integer.'}, status=400)
+
+    if not College.objects.filter(id=college_id, university_in_charge=university_in_charge).exists():
+        return JsonResponse({'error': 'College not found'}, status=404)
+
+    try:
+        enquiry_count = StudentEnquiry.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
+        job_posted_count = Job1.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
+        total_visitor_count = Visitor.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
+        shortlisted_count = Application1.objects.filter(job__college_id=college_id, university_in_charge=university_in_charge, status='shortlisted').count()
+
+        return JsonResponse({
+            'total_visitor_count': total_visitor_count,
+            'shortlisted_count': shortlisted_count,
+            'job_posted_count': job_posted_count,
+            'enquiry_count': enquiry_count
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+b)
+
+@csrf_exempt
+def college_jobs_api(request, college_id, university_in_charge_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    try:
+        jobs = Job1.objects.filter(college_id=college_id, university_in_charge=university_in_charge).values('job_title', 'location', 'job_status')
+
+        if not jobs:
+            return JsonResponse({"message": "No jobs found for the given college ID"}, status=404)
+
+        return JsonResponse(list(jobs), safe=False, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+c)
+
+@csrf_exempt
+def student_enquiries_for_college(request, college_id, university_in_charge_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    required_fields = ['first_name', 'last_name', 'email', 'mobile_number', 'course', 'status']
+    if not all(data.get(field) for field in required_fields):
+        return JsonResponse({'error': 'All fields are required'}, status=400)
+
+    try:
+        college = College.objects.get(id=college_id, university_in_charge=university_in_charge)
+    except College.DoesNotExist:
+        return JsonResponse({'error': 'College not found'}, status=404)
+
+    user_email = data.get('email')
+
+    try:
+        user = new_user.objects.get(email=user_email)
+    except new_user.DoesNotExist:
+        return JsonResponse({'error': 'User not found. Please ensure correct email'}, status=404)
+
+    if StudentEnquiry.objects.filter(new_user=user, college=college).exists():
+        return JsonResponse({'error': 'You have already submitted an enquiry for this college.'}, status=400)
+
+    try:
+        enquiry = StudentEnquiry.objects.create(
+            first_name=user.firstname,
+            last_name=user.lastname,
+            email=user.email,
+            mobile_number=user.phonenumber,
+            course=data['course'],
+            status=data['status'],
+            college=college,
+            university_in_charge=college.university_in_charge,
+            new_user=user
+        )
+        return JsonResponse({'message': 'Enquiry submitted successfully', 'enquiry_id': enquiry.id}, status=201)
+    except IntegrityError:
+        return JsonResponse({'error': 'Error while saving enquiry. Please try again.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+D)
+
+
+
+@csrf_exempt
+def get_student_enquiries_for_college(request, college_id, university_in_charge_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+    
+    try:
+        college = College.objects.get(id=college_id, university_in_charge=university_in_charge)
+    except College.DoesNotExist:
+        return JsonResponse({'error': 'College not found'}, status=404)
+    
+    try:
+        enquiries = StudentEnquiry.objects.filter(college=college, university_in_charge=university_in_charge)
+
+        enquiries_data = [
+            {
+                'first_name': enquiry.first_name,
+                'last_name': enquiry.last_name,
+                'course': enquiry.course,
+                'status': enquiry.status,
+            }
+            for enquiry in enquiries
+        ]
+        
+        return JsonResponse({'enquiries': enquiries_data}, status=200)
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+e)
+
+@csrf_exempt
+def register_visitor(request, college_id, university_in_charge_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    if request.method != "POST":
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        
+        college = get_object_or_404(College, id=college_id, university_in_charge=university_in_charge)
+
+        email = data.get('email')
+        if not email:
+            return JsonResponse({'error': 'Email is required'}, status=400)
+
+        if Visitor.objects.filter(email=email, college=college).exists():
+            return JsonResponse({'error': 'Visitor already registered'}, status=400)
+
+        form = VisitorRegistrationForm(data=data)
+        if form.is_valid():
+            visitor = form.save(commit=False)
+            visitor.password = make_password(data.get('password'))
+            visitor.college = college
+            visitor.university_in_charge = university_in_charge
+            visitor.save()
+
+            return JsonResponse({'message': 'Visitor registered successfully'}, status=201)
+        else:
+            return JsonResponse({'error': form.errors}, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+f)
+
+@csrf_exempt
+def login_visitor(request, university_in_charge_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    if request.method != "POST":
+        return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        email = data.get('email')
+        password = data.get('password')
+
+        if not email or not password:
+            return JsonResponse({'error': 'Email and password are required'}, status=400)
+
+        visitor = get_object_or_404(Visitor, email=email, university_in_charge=university_in_charge)
+
+        if check_password(password, visitor.password):
+            return JsonResponse({'message': 'Login successful'}, status=200)
+        else:
+            return JsonResponse({'error': 'Invalid credentials'}, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+g)
+
+@csrf_exempt
+def apply_college_job(request, job_id, university_in_charge_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        json_data = json.loads(request.POST.get('data', '{}'))
+        job = get_object_or_404(Job1, id=job_id, university_in_charge=university_in_charge)
+
+        email = json_data.get('email')
+        if not email:
+            return JsonResponse({'error': 'Email is required'}, status=400)
+
+        if Application1.objects.filter(Q(email=email) & Q(job=job)).exists():
+            return JsonResponse({'error': 'An application with this email already exists for this job.'}, status=400)
+
+        new_user_exists = new_user.objects.filter(email=email).exists()
+        job_seeker_exists = JobSeeker.objects.filter(email=email).exists()
+
+        if not new_user_exists and not job_seeker_exists:
+            return JsonResponse({'error': 'No account found for this email in NewUser or JobSeeker'}, status=404)
+        
+        form = Application1Form(json_data, request.FILES)
+        if form.is_valid():
+            application = form.save(commit=False)
+            application.job = job
+            application.university_in_charge = university_in_charge
+
+            job_skills = set(job.skills.split(', '))
+            candidate_skills = set(json_data.get('skills', '').split(', '))
+            application.skills = ', '.join(candidate_skills)
+
+            if not job_skills.intersection(candidate_skills):
+                return JsonResponse({'message': 'Candidate is not eligible to apply'}, status=404)
+
+            application.save()
+            return JsonResponse({'message': 'Application submitted successfully', 'application_id': application.id}, status=201)
+
+        return JsonResponse({'errors': form.errors}, status=400)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+h)
+
+@csrf_exempt
+def college_status(request, status_choice, university_in_charge_id):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    try:
+        college_id = request.GET['college_id']
+        print(college_id)
+
+        college = get_object_or_404(College, id=college_id, university_in_charge=university_in_charge)
+        print(college)
+
+        job_id = Job1.objects.filter(college=college)
+        apply_id = Application1.objects.filter(job__in=job_id)
+
+        name = []
+        if status_choice == 'selected':
+            candidate_status_modelname = Candidate1Status_selected
+        elif status_choice == 'rejected':
+            candidate_status_modelname = Candidate1Status_rejected
+        elif status_choice == 'not_eligible':
+            candidate_status_modelname = Candidate1Status_not_eligible
+        elif status_choice == 'under_review':
+            candidate_status_modelname = Candidate1Status_under_review
+
+        for application in apply_id:
+            if application.status == status_choice:
+                name.append(application.first_name)
+                candidate_status_modelname.objects.create(
+                    first_name=application.first_name,
+                    status=status_choice,
+                    college_id=college_id,
+                    job_id=application.job_id, 
+                )
+
+        return JsonResponse({'message': name}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+==============================================================================
+
+2) Profile ->
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CollegeListCreateView(View):
+    def post(self, request, university_in_charge_id):
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+        token = auth_header.split(' ')[1]
+
+        try:
+            university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+        except UniversityInCharge.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+        try:
+            college_email = request.POST.get('email')
+            if not college_email:
+                return JsonResponse({'status': 'error', 'message': 'Email is required'}, status=400)
+
+            if college_email != university_in_charge.official_email:
+                return JsonResponse({'status': 'error', 'message': 'Email does not match university in charge email'}, status=400)
+
+            college = College.objects.filter(email=college_email).first()
+
+            if college:
+                college_form = CollegeForm(request.POST, request.FILES, instance=college)
+            else:
+                college_form = CollegeForm(request.POST, request.FILES)
+
+            if college_form.is_valid():
+                college = college_form.save(commit=False)
+                college.university_in_charge = university_in_charge
+                college.save()
+
+                if request.POST.get('is_deleted', 'false').lower() == 'true' and college.Attachment:
+                    attachment_path = college.Attachment.path
+                    if os.path.exists(attachment_path):
+                        os.remove(attachment_path)
+                    college.Attachment = None
+                    college.save(update_fields=['Attachment'])
+
+                    return JsonResponse({'status': 'success', 'message': 'Attachment deleted successfully', 'college_id': college.id}, status=200)
+
+                return JsonResponse({'status': 'success', 'message': 'College created/updated successfully', 'college_id': college.id}, status=201)
+            else:
+                return JsonResponse(college_form.errors, status=400)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+=====================================================================================================
+
+3) Posted job ->
+
+@csrf_exempt
+def jobs_by_college(request, university_in_charge_id):
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    try:
+        college_id = request.GET.get('college_id')
+        sort_order = request.GET.get('sort_order')
+        job_status = request.GET.get('job_status')
+
+        if not (college_id or sort_order or job_status):
+            return JsonResponse({'error': 'Select at least one parameter'}, status=400)
+
+        jobs = Job1.objects.all()
+
+        if college_id:
+            college = get_object_or_404(College, id=college_id, university_in_charge=university_in_charge)
+            jobs = jobs.filter(college=college)
+
+        if job_status:
+            job_status = job_status.lower()
+            if job_status in ['active', 'closed']:
+                jobs = jobs.filter(job_status=job_status)
+            else:
+                return JsonResponse({'error': 'Invalid job status'}, status=400)
+
+        if sort_order in ['latest', 'oldest']:
+            order = '-published_at' if sort_order == 'latest' else 'published_at'
+            jobs = jobs.order_by(order)
+        elif sort_order:
+            return JsonResponse({'error': 'Invalid sort order'}, status=400)
+
+        jobs_list = [{
+            'id': job.id,
+            'university_in_charge': str(university_in_charge),
+            'job_title': job.job_title,
+            'location': job.location,
+            'description': job.description,
+            'requirements': job.requirements,
+            'job_type': job.job_type,
+            'experience': job.experience,
+            'category': job.category,
+            'published_at': job.published_at,
+            'status': job.job_status
+        } for job in jobs]
+
+        return JsonResponse(jobs_list, safe=False, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+====================================================================================
+4) Message ->
+
+a)
+
+
+@csrf_exempt
+def search_clg_user(request):
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]  
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    query = request.GET.get('q', '').strip()
+
+    try:
+        student_contacts = new_user.objects.all().values('id', 'firstname', 'lastname', 'email')
+        jobseeker_contacts = JobSeeker.objects.all().values('id', 'first_name', 'last_name', 'email')
+        college_contacts = College.objects.all().values('id', 'college_name', 'email')
+
+        if query:
+            student_contacts = student_contacts.filter(
+                Q(firstname__icontains=query) |
+                Q(email__icontains=query)
+            )
+            jobseeker_contacts = jobseeker_contacts.filter(
+                Q(first_name__icontains=query) |
+                Q(email__icontains=query)
+            )
+            college_contacts = college_contacts.filter(
+                Q(college_name__icontains=query) |
+                Q(email__icontains=query)
+            )
+
+        contact_list = list(student_contacts) + list(jobseeker_contacts) + list(college_contacts)
+
+        return JsonResponse({
+            'status': 'success',
+            'contacts': contact_list
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+
+b)
+
+@csrf_exempt
+def send_msg_clg(request):
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+	
+        university_in_charge = UniversityInCharge.objects.get(token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    if request.method != "POST":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    sender_email = request.POST.get('sender_email')
+    recipient_email = request.POST.get('recipient_email')
+    message_content = request.POST.get('content')
+
+    if not all([sender_email, recipient_email, message_content]):
+        return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
+
+    try:
+        sender_new_user = new_user.objects.filter(email=sender_email).first()
+        sender_job_seeker = JobSeeker.objects.filter(email=sender_email).first()
+
+        if not sender_new_user and not sender_job_seeker:
+            return JsonResponse({'status': 'false', 'message': 'Sender not found'}, status=404)
+
+        recipient = College.objects.filter(email=recipient_email).first()
+        if not recipient:
+            return JsonResponse({'status': 'false', 'message': 'Recipient not found'}, status=404)
+
+        message = College_Message.objects.create(
+            sender_newuser=sender_new_user if sender_new_user else None,
+            sender_jobseeker=sender_job_seeker if sender_job_seeker else None,
+            college_recipient=recipient,
+            content=message_content
+        )
+
+        attachments = request.FILES.getlist('attachments', [])
+        College_Attachment.objects.bulk_create([ 
+            College_Attachment(message=message, file=file) for file in attachments
+        ])
+
+        email_subject = f'New Message from {sender_email}'
+        email_body = (
+            f'You have received a new message from {sender_email}.\n\n'
+            f'Content: {message_content}\n\n'
+            'You can view the message in your inbox.'
+        )
+        send_mail(
+            email_subject,
+            email_body,
+            settings.EMAIL_HOST_USER,
+            [recipient_email],
+            fail_silently=False,
+        )
+
+        return JsonResponse({'status': 'success', 'message': 'Message sent successfully!'}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+c)
+
+@csrf_exempt
+def clg_inbox(request):
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    email = request.GET.get('email')
+    filter_value = request.GET.get('filter')
+
+    if not email:
+        return JsonResponse({'status': 'false', 'message': 'Email is required'}, status=400)
+
+    try:
+        messages_query = College_Message.objects.filter(
+            Q(sender_newuser__email=email) | Q(sender_jobseeker__email=email) | Q(college_recipient__email=email)
+        ).order_by('-timestamp')
+
+        if filter_value in ['read', 'unread']:
+            is_read = filter_value == 'read'
+            messages_query = messages_query.filter(is_read=is_read)
+
+        message_list = [
+            {
+                'id': message.id,
+                'sender': (
+                    message.sender_newuser.email if message.sender_newuser else
+                    message.sender_jobseeker.email
+                ),
+                'recipient': message.college_recipient.email,
+                'content': message.content,
+                'timestamp': message.timestamp,
+                'is_read': message.is_read,
+                'attachments': [
+                    {
+                        'id': attachment.id,
+                        'file_url': attachment.file.url,
+                        'uploaded_at': attachment.uploaded_at
+                    } for attachment in message.attachment.all()
+                ]
+            }
+            for message in messages_query
+        ]
+
+        return JsonResponse({'status': 'success', 'messages': message_list}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'status': 'false', 'error': str(e)}, status=500)
+
+
+d)
+
+@csrf_exempt
+def get_messages_clg(request):
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    try:
+        sender_email = request.GET.get('sender_email')
+        recipient_email = request.GET.get('recipient_email')
+
+        if not all([sender_email, recipient_email]):
+            return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
+
+        sender_new_user = new_user.objects.filter(email=sender_email).first()
+        sender_job_seeker = JobSeeker.objects.filter(email=sender_email).first()
+
+        if not sender_new_user and not sender_job_seeker:
+            return JsonResponse({'status': 'false', 'message': 'Sender not found'}, status=404)
+
+        college_recipient = College.objects.filter(email=recipient_email).first()
+
+        if not college_recipient:
+            return JsonResponse({'status': 'false', 'message': 'Recipient not found'}, status=404)
+
+        all_messages = College_Message.objects.filter(
+            sender_newuser=sender_new_user,
+            sender_jobseeker=sender_job_seeker,
+            college_recipient=college_recipient
+        ).prefetch_related('attachment')
+
+        if not all_messages.exists():
+            return JsonResponse({'status': 'false', 'message': 'No messages found'}, status=404)
+
+        all_messages.filter(is_read=False).update(is_read=True)
+
+        messages_data = []
+        for message in all_messages:
+            attachments = message.attachment.all()
+            attachments_data = [
+                {
+                    'file_url': attachment.file.url,
+                    'uploaded_at': attachment.uploaded_at
+                }
+                for attachment in attachments
+            ]
+
+            messages_data.append({
+                'message_id': message.id,
+                'sender_email': (
+                    message.sender_newuser.email if message.sender_newuser else
+                    message.sender_jobseeker.email
+                ),
+                'recipient_email': message.college_recipient.email,
+                'content': message.content,
+                'timestamp': message.timestamp,
+                'is_read': message.is_read,
+                'attachments': attachments_data
+            })
+
+        return JsonResponse({'status': 'success', 'messages': messages_data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+=========================================================================================================
+
+
+5) Add Job ->
+
+a)
+
+@csrf_exempt
+def create_job_for_college(request, university_incharge_id):
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'error': 'Invalid token or university in charge not found'}, status=401)
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+
+            college_id = data.get('college')
+            if not college_id:
+                return JsonResponse({'error': 'College ID is required'}, status=400)
+
+            try:
+                university_in_charge = UniversityInCharge.objects.get(id=university_incharge_id)
+            except UniversityInCharge.DoesNotExist:
+                return JsonResponse({'error': 'UniversityInCharge not found'}, status=404)
+
+            try:
+                college = College.objects.get(id=college_id, university_in_charge=university_in_charge)
+            except College.DoesNotExist:
+                return JsonResponse({'error': 'College not found'}, status=404)
+
+            form = Job1Form(data)
+            if form.is_valid():
+                jobs = form.save(commit=False)
+                jobs.college = college
+                jobs.university_in_charge = university_in_charge
+                jobs.save()
+
+                return JsonResponse({'message': 'Job created successfully'}, status=201)
+
+            else:
+                return JsonResponse({'error': 'Invalid form data', 'errors': form.errors}, status=400)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method. Use POST.'}, status=405)
+
+
+b)
+
+@csrf_exempt
+def save_screening_questions_and_answers_for_college(request, university_incharge_id):
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'error': 'Invalid token or university in charge not found'}, status=401)
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body.decode('utf-8'))
+
+            job_id = data.get('job_id')
+            questions_and_answers = data.get('questions_and_answers')
+
+            if not job_id:
+                return JsonResponse({'status': 'error', 'message': 'Job ID is missing'}, status=400)
+
+            if not questions_and_answers:
+                return JsonResponse({'status': 'error', 'message': 'Questions and answers are missing'}, status=400)
+
+            try:
+                university_in_charge = UniversityInCharge.objects.get(id=university_incharge_id)
+            except UniversityInCharge.DoesNotExist:
+                return JsonResponse({'error': f'University in charge with ID "{university_incharge_id}" does not exist'}, status=404)
+
+            job = Job1.objects.get(id=job_id, university_in_charge=university_in_charge)
+
+            for qa in questions_and_answers:
+                question_text = qa.get('question')
+                correct_answer = qa.get('correct_answer')
+
+                CollegeScreeningQuestion.objects.create(
+                    job=job,
+                    question_text=question_text,
+                    correct_answer=correct_answer,
+                    university_in_charge=university_in_charge
+                )
+
+            return JsonResponse({'status': 'success', 'message': 'Questions and answers saved successfully'}, status=201)
+        except Job1.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Job not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+
+c)
+
+@csrf_exempt
+def submit_application_with_screening_for_college(request, job_id, university_incharge_id):
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'error': 'Invalid token or university in charge not found'}, status=401)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method"}, status=405)
+
+    try:
+        job = Job1.objects.get(id=job_id)  
+        print(job)
+    except Job1.DoesNotExist:
+        return JsonResponse({"error": "Job not found"}, status=404)
+
+    try:
+        university_incharge = UniversityInCharge.objects.get(id=university_incharge_id)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'University in charge not found'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+
+        email = data.get('email')
+        skills = data.get('skills')
+        must_have_qualification = data.get('must_have_qualification', False)
+        answers = data.get('answers')
+
+        if not email or not answers:
+            return JsonResponse({"error": "Email or answers are missing"}, status=400)
+
+        newuser = new_user.objects.filter(email=email).first()
+        jobseeker = JobSeeker.objects.filter(email=email).first()
+        
+        if not newuser and not jobseeker:
+            return JsonResponse({"error": "No registration found for NewUser and JobSeeker with this email"}, status=400)
+
+        first_question_id = answers[0].get('question_id')
+        if not first_question_id:
+            return JsonResponse({"error": "First question ID is missing"}, status=400)
+
+        first_question = CollegeScreeningQuestion.objects.filter(id=first_question_id).first()
+        if not first_question:
+            return JsonResponse({"error": f"Invalid question_id: {first_question_id}"}, status=400)
+
+        if Application1.objects.filter(job=job, user=newuser, job_seeker=jobseeker, university_in_charge=university_incharge).exists():
+            return JsonResponse({"error": f"User or JobSeeker with email {email} has already submitted an application for this job."}, status=400)
+
+        application = Application1.objects.create(
+            job=job,
+            email=email,
+            skills=skills,
+            status="pending",
+            user=newuser,
+            job_seeker=jobseeker,
+            university_in_charge=university_incharge,
+            first_name=newuser.first_name if newuser else jobseeker.first_name,
+            last_name=newuser.last_name if newuser else jobseeker.last_name
+        )
+
+        correct_answers = {question.id: question.correct_answer for question in CollegeScreeningQuestion.objects.filter(job=job)}
+        all_answers_correct = True
+
+        for answer_data in answers:
+            question_id = answer_data.get('question_id')
+            answer_text = answer_data.get('answer')
+
+            if not question_id or not answer_text:
+                return JsonResponse({"error": "Question ID or answer is missing"}, status=400)
+
+            question = CollegeScreeningQuestion.objects.filter(id=question_id, job=job).first()
+            if not question:
+                return JsonResponse({"error": f"Invalid question_id: {question_id}"}, status=400)
+
+            is_correct = (correct_answers.get(question.id) == answer_text)
+
+            CollegeScreeningAnswer.objects.create(
+                application=application,
+                question=question,
+                answer_text=answer_text,
+                university_in_charge=university_incharge
+            )
+
+            if not is_correct:
+                all_answers_correct = False
+
+        if all_answers_correct and must_have_qualification:
+            application.status = 'selected'
+            application.save()
+
+            email_subject = "Job Application Status"
+            email_body = f"Dear Applicant,\n\nYour application for the job {job.job_title} has been accepted."
+            send_mail(
+                email_subject,
+                email_body,
+                settings.EMAIL_HOST_USER,
+                [application.email],
+                fail_silently=False,
+            )
+            return JsonResponse({"message": "Application submitted successfully and applicant selected."}, status=201)
+
+        elif must_have_qualification and not all_answers_correct:
+            application.status = 'rejected'
+            application.save()
+
+            email_subject = "Job Application Status"
+            email_body = f"Dear Applicant,\n\nUnfortunately, your application for the job {job.job_title} has been rejected."
+            send_mail(
+                email_subject,
+                email_body,
+                settings.EMAIL_HOST_USER,
+                [application.email],
+                fail_silently=False,
+            )
+            return JsonResponse({"message": "Application submitted successfully and applicant rejected."}, status=201)
+
+        elif not must_have_qualification and all_answers_correct:
+            application.status = 'pending'
+            application.save()
+
+            return JsonResponse({"message": "Applicant moves to the above list."}, status=201)
+
+        elif not must_have_qualification and not all_answers_correct:
+            application.status = 'pending'
+            application.save()
+
+            return JsonResponse({"message": "Applicant moves to the below list."}, status=201)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+===================================================================================
+6) Membership
+
+7) Account Setting
+
+8) Delete Account
+
+9) Logout 

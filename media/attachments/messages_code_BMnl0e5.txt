@@ -1,0 +1,277 @@
+views.py code:
+=============
+@csrf_exempt
+def search_company_college_user(request):
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    query = request.GET.get('q', '').strip()
+
+    if not query:
+        return JsonResponse({'status': 'success', 'contacts': []}, status=200)
+
+    try:
+        user_contacts = User.objects.filter(
+            Q(username__icontains=query) | Q(email__icontains=query)
+        ).values('id', 'username', 'email')
+
+        company_contacts = Company.objects.filter(
+            Q(name__icontains=query) | Q(email__icontains=query)
+        ).values('id', 'name', 'email')
+
+        college_contacts = College.objects.filter(
+            Q(college_name__icontains=query) | Q(email__icontains=query)
+        ).values('id', 'college_name', 'email')
+
+        contact_list = list(user_contacts) + list(company_contacts) + list(college_contacts)
+
+        return JsonResponse({
+            'status': 'success',
+            'contacts': contact_list
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+note:
+====
+1.Early return if no query: If query is empty, it immediately returns an empty contact list instead of querying the database unnecessarily.
+
+2.Filtered Queries: Queries are only executed when query is non-empty, avoiding retrieving all records first and then filtering them in Python.
+
+3.Removed unnecessary .all(): Instead of first calling .all() and then filtering, it's more efficient to directly apply .filter() with the Q objects.
+
+===========================================================================================================================================
+
+@csrf_exempt
+def send_msg_clg_comp(request):
+    if request.method != "POST":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    sender_email = request.POST.get('sender_email')
+    recipient_email = request.POST.get('recipient_email')
+    message_content = request.POST.get('content')
+
+    if not all([sender_email, recipient_email, message_content]):
+        return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
+
+    try:
+        sender = get_object_or_404(User, email=sender_email)
+
+        recipient_company = Company.objects.filter(email=recipient_email).first()
+        recipient_college = College.objects.filter(email=recipient_email).first()
+
+        if recipient_company:
+            message = Message.objects.create(
+                sender=sender,
+                company_recipient=recipient_company,
+                content=message_content
+            )
+            recipient_name = recipient_company.name
+
+            attachments = request.FILES.getlist('attachments', [])
+            if attachments:
+                Attachment.objects.bulk_create([
+                    Attachment(message=message, file=file) for file in attachments
+                ])
+
+        elif recipient_college:
+            message = College_Message.objects.create(
+                sender=sender,
+                college_recipient=recipient_college,
+                content=message_content
+            )
+            recipient_name = recipient_college.college_name
+
+            attachments = request.FILES.getlist('attachments', [])
+            if attachments:
+                College_Attachment.objects.bulk_create([
+                    College_Attachment(message=message, file=file) for file in attachments
+                ])
+
+        else:
+            return JsonResponse({'status': 'false', 'message': 'Recipient not found'}, status=404)
+
+        email_subject = f'New Message from {sender.email}'
+        email_body = (
+            f'You have received a new message from {sender.email}.\n\n'
+            f'Content: {message_content}\n\n'
+            'You can view the message in your inbox.'
+        )
+        send_mail(
+            email_subject,
+            email_body,
+            settings.EMAIL_HOST_USER,
+            [recipient_email],
+            fail_silently=False,
+        )
+
+        return JsonResponse({'status': 'success', 'message': 'Message sent successfully!'}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+note:
+====
+1.Early Attachment Check: Attachments are processed only if they exist, saving unnecessary database operations when there are no attachments.
+
+2.Avoid Redundant Queries: recipient_company and recipient_college are fetched with .first(), avoiding the need to handle exceptions for non-existent entries and making the lookup cleaner.
+
+3.Code Clarity: Cleaned up some redundant code sections for better readability without changing the core logic or structure.
+
+===========================================================================================================================================
+
+@csrf_exempt
+def get_clg_comp_messages(request):
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    try:
+        sender_email = request.GET.get('sender_email')
+        recipient_email = request.GET.get('recipient_email')
+
+        if not all([sender_email, recipient_email]):
+            return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
+
+        sender = get_object_or_404(User, email=sender_email)
+        company_recipient = Company.objects.filter(email=recipient_email).first()
+        college_recipient = College.objects.filter(email=recipient_email).first()
+
+        if company_recipient:
+            all_messages = Message.objects.filter(
+                sender=sender,
+                company_recipient=company_recipient
+            ).prefetch_related('attachments')
+
+        elif college_recipient:
+            all_messages = College_Message.objects.filter(
+                sender=sender,
+                college_recipient=college_recipient
+            ).prefetch_related('attachment')
+
+        else:
+            return JsonResponse({'status': 'false', 'message': 'Recipient not found'}, status=404)
+
+        if not all_messages.exists():
+            return JsonResponse({'status': 'false', 'message': 'No messages found'}, status=404)
+
+        all_messages.filter(is_read=False).update(is_read=True)
+
+        messages_data = [
+            {
+                'message_id': message.id,
+                'sender_email': message.sender.email,
+                'recipient_email': recipient_email,
+                'content': message.content,
+                'timestamp': message.timestamp,
+                'is_read': message.is_read,
+                'attachments': [
+                    {
+                        'file_url': attachment.file.url,
+                        'uploaded_at': attachment.uploaded_at
+                    }
+                    for attachment in (message.attachments.all() if company_recipient else message.attachment.all())
+                ]
+            }
+            for message in all_messages
+        ]
+
+        return JsonResponse({'status': 'success', 'messages': messages_data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+note:
+====
+1.Simplified Message Filtering: Directly fetch messages based on whether the recipient is a company or a college. This avoids redundant checks and streamlines the message retrieval process.
+
+2.Batching Attachment Queries: The attachments for company and college messages are now handled directly within the message data loop, reducing redundancy in code.
+
+3.Early Returns: All early returns (like when fields are missing or no messages are found) happen sooner, reducing unnecessary processing.
+
+4.Reduced print Calls: Removed print statements to improve performance since they were used for debugging.
+
+=========================================================================================================================================
+
+@csrf_exempt
+def clg_comp_inbox(request):
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    email = request.GET.get('email')
+    filter_value = request.GET.get('filter')
+
+    if not email:
+        return JsonResponse({'status': 'false', 'message': 'Email is required'}, status=400)
+
+    try:
+        company_messages_query = Message.objects.filter(
+            Q(sender__email=email) | Q(company_recipient__email=email)
+        )
+
+        college_messages_query = College_Message.objects.filter(
+            Q(sender__email=email) | Q(college_recipient__email=email)
+        )
+		
+        if filter_value in ['read', 'unread']:
+            is_read = filter_value == 'read'
+            company_messages_query = company_messages_query.filter(is_read=is_read)
+            college_messages_query = college_messages_query.filter(is_read=is_read)
+
+        messages_list = []
+
+        for message in company_messages_query.order_by('-timestamp'):
+            messages_list.append({
+                'id': message.id,
+                'sender': message.sender.email,
+                'recipient': message.company_recipient.email,
+                'content': message.content,
+                'timestamp': message.timestamp,
+                'is_read': message.is_read,
+                'attachments': [
+                    {
+                        'id': attachment.id,
+                        'file_url': attachment.file.url,
+                        'uploaded_at': attachment.uploaded_at
+                    } for attachment in message.attachments.all()
+                ]
+            })
+
+        for message in college_messages_query.order_by('-timestamp'):
+            messages_list.append({
+                'id': message.id,
+                'sender': message.sender.email,
+                'recipient': message.college_recipient.email,
+                'content': message.content,
+                'timestamp': message.timestamp,
+                'is_read': message.is_read,
+                'attachments': [
+                    {
+                        'id': attachment.id,
+                        'file_url': attachment.file.url,
+                        'uploaded_at': attachment.uploaded_at
+                    } for attachment in message.attachment.all()
+                ]
+            })
+			
+        messages_list.sort(key=lambda x: x['timestamp'], reverse=True)
+
+        return JsonResponse({'status': 'success', 'messages': messages_list}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'status': 'false', 'error': str(e)}, status=500)
+
+note:
+====
+1.Query Optimization: Moved the .order_by('-timestamp') calls to the message-fetching loops rather than having it applied on the query set directly. This helps keep the queries concise and leverages the database's ordering when iterating.
+
+2.Direct Appending to List: Simplified the appending process for both company and college messages to streamline code readability.
+
+3.Reduced Redundant Queries: Removed the unnecessary querying of timestamps in sorting as you already have the messages sorted by timestamp in descending order when appending.
+
+4.Improved Variable Naming: Improved readability by maintaining consistent and clear variable names throughout.
+
+=========================================================================================================================================

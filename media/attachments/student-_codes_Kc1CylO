@@ -1,0 +1,53 @@
+@csrf_exempt
+def search_clg_user(request):
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+	
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+             return JsonResponse({'error': 'Token is missing or in an invalid format'}, status=400)
+        
+        token = auth_header.split(' ')[1]
+        sender_email = request.GET.get('sender_email')
+       
+        university_in_charge = UniversityInCharge.objects.get(token=token)
+        
+        if university_in_charge.official_email != sender_email:
+            return JsonResponse({'status': 'false', 'message': 'Sender email does not match the token'}, status=403)
+
+        query = request.GET.get('q', '').strip()
+
+        student_contacts = new_user.objects.all().values('id', 'firstname', 'lastname', 'email')
+        jobseeker_contacts = JobSeeker.objects.all().values('id', 'first_name', 'last_name', 'email')
+        company_contacts = UniversityInCharge.objects.all().values('id', 'university_name', 'official_email')
+
+        if query:
+            student_contacts = student_contacts.filter(
+                Q(firstname__icontains=query) |
+                Q(email__icontains=query)
+            )
+            jobseeker_contacts = jobseeker_contacts.filter(
+                Q(first_name__icontains=query) |
+                Q(email__icontains=query)
+            )
+            company_contacts = company_contacts.filter(
+                Q(university_name__icontains=query) |
+                Q(official_email__icontains=query)
+            )
+        
+        if not query:
+            return JsonResponse({'status': 'success', 'contacts': []}, status=200)    
+
+        contact_list = list(student_contacts) + list(jobseeker_contacts) + list(company_contacts)
+
+        return JsonResponse({
+            'status': 'success',
+            'contacts': contact_list
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)

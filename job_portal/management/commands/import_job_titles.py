@@ -1,6 +1,7 @@
 import pandas as pd # type: ignore
 from django.core.management.base import BaseCommand
 from job_portal.models import Application, Job, Company
+from login.models import CompanyInCharge
 
 class Command(BaseCommand):
     help = 'Import data from multiple Excel files to the Job, Company, and Application models'
@@ -41,6 +42,8 @@ class Command(BaseCommand):
             sector_types_df = pd.read_excel(sector_types_path)
             country_names_df = pd.read_excel(country_names_path)
             statuses_df = pd.read_excel(statuses_path)
+            
+            company_in_charge, _ = CompanyInCharge.objects.get_or_create(company_name="Default CompanyInCharge")
 
             max_rows = max(
                 len(job_titles_df),
@@ -67,12 +70,14 @@ class Command(BaseCommand):
 
                 if sector_type or country:
                    company, _= Company.objects.get_or_create(
+                       company_in_charge=company_in_charge,
                         sector_type=sector_type,
                         country=country
                     )
 
                 if job_title or job_type or experience or category or workplace_type or location:
                     job, _= Job.objects.get_or_create(
+                        company_in_charge=company_in_charge,
                         job_title=job_title,
                         job_type=job_type,
                         experience=experience,
@@ -85,9 +90,9 @@ class Command(BaseCommand):
 
                 if job and status:
                     Application.objects.create(
+                        company_in_charge=company_in_charge,
                         job=job,
                         status=status,
-                        student =None
                     )
 
                 self.stdout.write(self.style.SUCCESS(f'Successfully imported row {i+1}'))

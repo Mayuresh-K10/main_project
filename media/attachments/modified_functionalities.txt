@@ -1,0 +1,203 @@
+** Changing in some functionalities- >
+
+1) create-jobs-for-college (College Dashboard) ->
+
+@csrf_exempt
+def create_job_for_college(request, university_incharge_id):
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(token=token, id=university_incharge_id)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'error': 'Invalid token or university in charge not found'}, status=401)
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+
+            college_id = data.get('college')
+            if not college_id:
+                return JsonResponse({'error': 'College ID is required'}, status=400)
+
+            try:
+                university_in_charge = UniversityInCharge.objects.get(id=university_incharge_id)
+            except UniversityInCharge.DoesNotExist:
+                return JsonResponse({'error': 'UniversityInCharge not found'}, status=404)
+
+            try:
+                college = College.objects.get(id=college_id, university_in_charge=university_in_charge)
+            except College.DoesNotExist:
+                return JsonResponse({'error': 'College not found'}, status=404)
+            
+            if Job1.objects.filter(college=college).count() >= 100:
+                return JsonResponse({'message': 'Limit exceeded for job postings by this company'}, status=200)
+
+
+            form = Job1Form(data)
+            if form.is_valid():
+                jobs = form.save(commit=False)
+                jobs.college = college
+                jobs.university_in_charge = university_in_charge
+                jobs.save()
+
+                return JsonResponse({'message': 'Job created successfully'}, status=201)
+
+            else:
+                return JsonResponse({'error': 'Invalid form data', 'errors': form.errors}, status=400)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    return JsonResponse({'error': 'Invalid request method. Use POST.'}, status=405)
+
+
+2) submit application for screening questions (College Dashoard)
+
+@csrf_exempt
+def submit_application_with_screening_for_college(request, job_id, university_incharge_id):
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        university_in_charge = UniversityInCharge.objects.get(token=token)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'error': 'Invalid token or university in charge not found'}, status=401)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "Invalid request method"}, status=405)
+
+    try:
+        job = Job1.objects.get(id=job_id)  
+        print(job)
+    except Job1.DoesNotExist:
+        return JsonResponse({"error": "Job not found"}, status=404)
+
+    try:
+        university_incharge = UniversityInCharge.objects.get(id=university_incharge_id)
+    except UniversityInCharge.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'University in charge not found'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+
+        email = data.get('email')
+        skills = data.get('skills')
+        must_have_qualification = data.get('must_have_qualification', False)
+        answers = data.get('answers')
+
+        if not email or not answers:
+            return JsonResponse({"error": "Email or answers are missing"}, status=400)
+
+        newuser = new_user.objects.filter(email=email).first()
+        jobseeker = JobSeeker.objects.filter(email=email).first()
+        
+        if not newuser and not jobseeker:
+            return JsonResponse({"error": "No registration found for NewUser and JobSeeker with this email"}, status=400)
+
+        first_question_id = answers[0].get('question_id')
+        if not first_question_id:
+            return JsonResponse({"error": "First question ID is missing"}, status=400)
+
+        first_question = CollegeScreeningQuestion.objects.filter(id=first_question_id).first()
+        if not first_question:
+            return JsonResponse({"error": f"Invalid question_id: {first_question_id}"}, status=400)
+
+        if Application1.objects.filter(job=job, user=newuser, job_seeker=jobseeker, university_in_charge=university_incharge).exists():
+            return JsonResponse({"error": f"User or JobSeeker with email {email} has already submitted an application for this job."}, status=400)
+
+        application = Application1.objects.create(
+            job=job,
+            email=email,
+            skills=skills,
+            status="pending",
+            user=newuser,
+            job_seeker=jobseeker,
+            university_in_charge=university_incharge,
+            first_name=newuser.firstname if newuser else jobseeker.first_name,
+            last_name=newuser.lastname if newuser else jobseeker.last_name
+        )
+
+        correct_answers = {question.id: question.correct_answer for question in CollegeScreeningQuestion.objects.filter(job=job)}
+        all_answers_correct = True
+
+        for answer_data in answers:
+            question_id = answer_data.get('question_id')
+            answer_text = answer_data.get('answer')
+
+            if not question_id or not answer_text:
+                return JsonResponse({"error": "Question ID or answer is missing"}, status=400)
+
+            question = CollegeScreeningQuestion.objects.filter(id=question_id, job=job).first()
+            if not question:
+                return JsonResponse({"error": f"Invalid question_id: {question_id}"}, status=400)
+
+            is_correct = (correct_answers.get(question.id) == answer_text)
+
+            CollegeScreeningAnswer.objects.create(
+                application=application,
+                question=question,
+                answer_text=answer_text,
+                university_in_charge=university_incharge
+            )
+
+            if not is_correct:
+                all_answers_correct = False
+
+        if all_answers_correct and must_have_qualification:
+            application.status = 'selected'
+            application.save()
+
+            email_subject = "Job Application Status"
+            email_body = f"Dear Applicant,\n\nYour application for the job {job.job_title} has been accepted."
+            send_mail(
+                email_subject,
+                email_body,
+                settings.EMAIL_HOST_USER,
+                [application.email],
+                fail_silently=False,
+            )
+            return JsonResponse({"message": "Application submitted successfully and applicant selected."}, status=201)
+
+        elif must_have_qualification and not all_answers_correct:
+            application.status = 'rejected'
+            application.save()
+
+            email_subject = "Job Application Status"
+            email_body = f"Dear Applicant,\n\nUnfortunately, your application for the job {job.job_title} has been rejected."
+            send_mail(
+                email_subject,
+                email_body,
+                settings.EMAIL_HOST_USER,
+                [application.email],
+                fail_silently=False,
+            )
+            return JsonResponse({"message": "Application submitted successfully and applicant rejected."}, status=201)
+
+        elif not must_have_qualification and all_answers_correct:
+            application.status = 'pending'
+            application.save()
+
+            return JsonResponse({"message": "Applicant moves to the above list."}, status=201)
+
+        elif not must_have_qualification and not all_answers_correct:
+            application.status = 'pending'
+            application.save()
+
+            return JsonResponse({"message": "Applicant moves to the below list."}, status=201)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)

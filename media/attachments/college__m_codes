@@ -1,0 +1,150 @@
+views.py:
+========
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import CollegeAdvertisement, UniversityInCharge
+from .forms import AdvertisementForm1
+
+@csrf_exempt
+def advertisement_form_view1(request, university_in_charge_id):
+    if request.method == 'POST':
+        try:
+            auth_header = request.headers.get('Authorization')
+
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+            token = auth_header.split(' ')[1]
+            university = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+
+            data = json.loads(request.body)
+            email = data.get('email')
+
+            if CollegeAdvertisement.objects.filter(email=email).exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'An advertisement with this email already exists. You can only submit the form once.'
+                }, status=400)
+            
+			           
+            if email != university.email:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'The provided email does not match the college in charge email.'
+                }, status=400)
+				
+            form = AdvertisementForm1(data)
+            if form.is_valid():
+                advertisement = form.save(commit=False)
+                advertisement.university_in_charge = university
+                advertisement.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Advertisement created successfully.',
+                    'data': {
+                        'id': advertisement.id,
+                        'name': advertisement.name,
+                        'email': advertisement.email,
+                        'contact': advertisement.contact,
+                        'advertisement_placement': advertisement.advertisement_placement,
+                        'time_duration': advertisement.time_duration,
+                        'investment_cost': str(advertisement.investment_cost),
+                        'target_audience': advertisement.target_audience,
+                    }
+                }, status=201)
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid data',
+                    'errors': form.errors
+                }, status=400)
+
+        except UniversityInCharge.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+
+
+
+
+
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import CollegeAdvertisement, UniversityInCharge
+from .forms import AdvertisementForm1
+
+@csrf_exempt
+def advertisement_form_view1(request, university_in_charge_id):
+    if request.method == 'POST':
+        try:
+            auth_header = request.headers.get('Authorization')
+
+            if not auth_header or not auth_header.startswith('Bearer '):
+                return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+            token = auth_header.split(' ')[1]
+            university = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+
+            data = json.loads(request.body)
+            email = data.get('email')
+
+            if CollegeAdvertisement.objects.filter(email=email).exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'An advertisement with this email already exists. You can only submit the form once.'
+                }, status=400)
+                       
+            if email != university.email:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'The provided email does not match the college in charge email.'
+                }, status=400)
+				
+            form = AdvertisementForm1(data)
+            if form.is_valid():
+                advertisement = form.save(commit=False)
+                advertisement.university_in_charge = university
+                advertisement.save()
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Advertisement created successfully.',
+                    'data': {
+                        'id': advertisement.id,
+                        'name': advertisement.name,
+                        'email': advertisement.email,
+                        'contact': advertisement.contact,
+                        'advertisement_placement': advertisement.advertisement_placement,
+                        'time_duration': advertisement.time_duration,
+                        'investment_cost': str(advertisement.investment_cost),
+                        'target_audience': advertisement.target_audience,
+                    }
+                }, status=201)
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Invalid data',
+                    'errors': form.errors
+                }, status=400)
+
+        except UniversityInCharge.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+app urls.py:
+===========
+
+path('advertisement/<int:university_in_charge_id>/', views.advertisement_form_view1, name='advertisement_form'),
+
+path('membership/<int:university_in_charge_id>/', views.membership_form_view1, name='membership_form'),

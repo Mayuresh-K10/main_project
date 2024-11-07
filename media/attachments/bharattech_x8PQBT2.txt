@@ -1,0 +1,51 @@
+Apply for Leave - To - bharattechdotin@gmail.com
+                  Cc - shrutijain7262@gmail.com
+                       chennakesavarao95@gmail.com
+                       anubhayadav443@gmail.com
+
+
+
+
+Commands ->
+
+query to create db - CREATE DATABASE mydatabase CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci; 
+
+GoogleSheet Link - 1) https://docs.google.com/spreadsheets/d/1HDhRKup9caEx97v3SOayA0wQpcAwNFtr7mxC4kjtifY/edit#gid=0
+                   2) https://docs.google.com/spreadsheets/d/1HDhRKup9caEx97v3SOayA0wQpcAwNFtr7mxC4kjtifY/edit?gid=1448749183#gid=1448749183
+ 
+
+pip uninstall elasticsearch==8.13.0 
+
+pip install -r requirements.txt  /  pip freeze > requirements.txt
+
+pip list
+
+json file -> collegecue-910d0-firebase-adminsdk-bvx8y-88393bd12b.json (login-utils.py)
+
+
+command for create the .env file -> pip install python-dotenv
+
+pip install django-allauth==0.63.3 
+
+pip install social-auth-app-django==5.4.1 
+
+pip install google-api-python-client==2.133.0 
+
+LinkedIn -  https://www.linkedin.com/company/collegecue/
+Instagram - https://www.instagram.com/collegecue_com/
+
+
+Codacy Link -> https://app.codacy.com/organizations/gh/BHARATTECH-ECOSYSTEMS/security/overview
+ 
+
+Refrenece Links -> 
+https://github.com/narender-rk10/proctoring?tab=readme-ov-file
+https://pypi.org/project/proctoring/
+https://templates.seekviral.com/quiza/quiz/Quiz13/index.html
+https://github.com/narender-rk10/MyProctor.ai-AI-BASED-SMART-ONLINE-EXAMINATION-PROCTORING-SYSYTEM
+https://www.linkedin.com/pulse/what-actually-happens-when-you-apply-job-linkedin-ronald-cheung?utm_source=share&utm_medium=member_android&utm_campaign=share_via
+
+Job Potal Changes ->  
+1) status choices - add under review
+2) create job- add custom questions
+3) create company - add description,sector

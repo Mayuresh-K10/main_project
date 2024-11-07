@@ -1,0 +1,35 @@
+settings.py:
+===========
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'APP': {
+            'client_id': os.getenv('GOOGLE_CLIENT_ID'), 
+            'secret': os.getenv('GOOGLE_SECRET'),
+        }
+    },
+    'linkedin_oauth2': {
+        'SCOPE': ['r_liteprofile', 'r_emailaddress'],
+        'APP': {
+            'client_id': os.getenv('LINKEDIN_CLIENT_ID'),
+            'secret': os.getenv('LINKEDIN_SECRET'),
+            'key': '',
+        },
+        'REDIRECT_URI': 'http://localhost:8000/accounts/linkedin_oauth2/login/callback/',
+    }
+}
+
+.env:
+====
+# for google auth
+GOOGLE_CLIENT_ID=637140872573-s02s282a35hrt8ka6rq74s0qr874diko.apps.googleusercontent.com
+GOOGLE_SECRET=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
+
+
+# for linkedin auth
+LINKEDIN_CLIENT_ID=77nsqjabx3hzmh
+LINKEDIN_SECRET=QhCUyUnQaoQj1Zry
