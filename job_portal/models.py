@@ -406,7 +406,7 @@ class Application1(models.Model):
     last_name = models.CharField(max_length=255, null=False, default="Doe")
     email = models.EmailField(null=False, default="unknown@example.com")
     phone_number = models.CharField(max_length=15, default="123-456-7890")
-    resume = models.FileField(upload_to='resumes/')
+    resume = models.FileField(upload_to='resumes/',null=True, blank=True)
     cover_letter = models.TextField(default="No cover letter provided")
     applied_at = models.DateTimeField(default=timezone.now)
     status = models.CharField(max_length=50, default='pending')
@@ -449,6 +449,7 @@ class CollegeEnquiry(models.Model):
     mobile_number = models.CharField(max_length=15)
     course = models.CharField(max_length=128, default='N/A')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not-replied')
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
@@ -461,6 +462,7 @@ class Visitor(models.Model):
     email = models.EmailField(null=False, default="unknown@example.com")
     mobile_number = models.CharField(max_length=15, default="123-456-7890")
     password = models.CharField(max_length=128)
+    visited_at = models.DateTimeField(default=timezone.now)
 
 class StudentEnquiry(models.Model):
     STATUS_CHOICES = [
@@ -477,6 +479,7 @@ class StudentEnquiry(models.Model):
     mobile_number = models.CharField(max_length=15)
     course = models.CharField(max_length=128, default='N/A')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(default=timezone.now)
 
 
     def __str__(self):

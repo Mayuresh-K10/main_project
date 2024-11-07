@@ -925,21 +925,76 @@ def fetch_status_choices(request):
     return JsonResponse({'error': 'Invalid request method.'}, status=400)
 
 
+# @csrf_exempt
+# def user_application_status_counts(request, user_id):
+#     auth_header = request.headers.get('Authorization')
+
+#     try:
+#         if not auth_header or not auth_header.startswith('Bearer '):
+#             return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
+
+#         token = auth_header.split(' ')[1]
+
+#         user = new_user.objects.get(id=user_id, token=token)
+
+#         email = request.GET.get('email')
+#         if not email or user.email != email:
+#             return JsonResponse({'error': 'Invalid email parameter or email does not match'}, status=400)
+
+        # total_jobs_applied_count = (
+        #     Application.objects.filter(user=user).count() +
+        #     Application1.objects.filter(user=user).count()
+        # )
+
+        # pending_count = (
+        #     Application.objects.filter(user=user, status='pending').count() +
+        #     Application1.objects.filter(user=user, status='pending').count()
+        # )
+
+        # interview_scheduled_count = (
+        #     Application.objects.filter(user=user, status='interview_scheduled').count() +
+        #     Application1.objects.filter(user=user, status='interview_scheduled').count()
+        # )
+
+        # rejected_count = (
+        #     Application.objects.filter(user=user, status='rejected').count() +
+        #     Application1.objects.filter(user=user, status='rejected').count()
+        # )
+
+        # college_enquiries_count = CollegeEnquiry.objects.filter(new_user=user).count()
+
+#         return JsonResponse({
+            # 'total_jobs_applied': total_jobs_applied_count,
+            # 'pending_count': pending_count,
+            # 'interview_scheduled': interview_scheduled_count,
+            # 'rejected_count': rejected_count,
+            # 'total_college_enquiries_count': college_enquiries_count
+#         })
+
+#     except new_user.DoesNotExist:
+#         return JsonResponse({'error': 'User not found or invalid token'}, status=404)
+#     except Application.DoesNotExist:
+#         return JsonResponse({'error': 'No applications found for the provided user.'}, status=404)
+#     except Exception as e:
+#         return JsonResponse({'error': 'An error occurred', 'details': str(e)}, status=500)
+
 @csrf_exempt
 def user_application_status_counts(request, user_id):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request method, only GET allowed'}, status=405)
+
     auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
+
+    token = auth_header.split(' ')[1]
 
     try:
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
-
-        token = auth_header.split(' ')[1]
-
-        user = new_user.objects.get(id=user_id, token=token)
-
         email = request.GET.get('email')
-        if not email or user.email != email:
-            return JsonResponse({'error': 'Invalid email parameter or email does not match'}, status=400)
+        if not email:
+            return JsonResponse({'error': 'Email parameter is required'}, status=400)
+        
+        user = new_user.objects.get(id=user_id, token=token, email=email)
 
         total_jobs_applied_count = (
             Application.objects.filter(user=user).count() +
@@ -963,20 +1018,84 @@ def user_application_status_counts(request, user_id):
 
         college_enquiries_count = CollegeEnquiry.objects.filter(new_user=user).count()
 
-        return JsonResponse({
+        jobs_applied_by_month = (
+            list(Application.objects.filter(user=user)
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id'))) +
+            list(Application1.objects.filter(user=user)
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id')))
+        )
+        
+        pending_by_month = (
+            list(Application.objects.filter(user=user, status='pending')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id'))) +
+            list(Application1.objects.filter(user=user, status='pending')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id')))
+        )
+       
+        interview_scheduled_by_month = (
+            list(Application.objects.filter(user=user, status='interview_scheduled')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id'))) +
+            list(Application1.objects.filter(user=user, status='interview_scheduled')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id')))
+        )
+
+        rejected_by_month = (
+            list(Application.objects.filter(user=user, status='rejected')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id'))) +
+            list(Application1.objects.filter(user=user, status='rejected')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id')))
+        )
+        
+        college_enquiries_by_month = (
+            CollegeEnquiry.objects.filter(new_user=user)
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+
+        def format_counts(data):
+            counts = {}
+            for item in data:
+                month = item['month'].strftime('%Y-%m')
+                counts[month] = counts.get(month, 0) + item['count']
+            return counts
+
+        response_data = {
             'total_jobs_applied': total_jobs_applied_count,
             'pending_count': pending_count,
             'interview_scheduled': interview_scheduled_count,
             'rejected_count': rejected_count,
-            'total_college_enquiries_count': college_enquiries_count
-        })
+            'total_college_enquiries_count': college_enquiries_count,
+            'jobs_applied_by_month': {entry['month'].strftime('%Y-%m'): entry['count'] for entry in jobs_applied_by_month},
+            'pending_by_month': {entry['month'].strftime('%Y-%m'): entry['count'] for entry in pending_by_month},
+            'interview_scheduled_by_month': {entry['month'].strftime('%Y-%m'): entry['count'] for entry in interview_scheduled_by_month},
+            'rejected_by_month': {entry['month'].strftime('%Y-%m'): entry['count'] for entry in rejected_by_month},
+            'college_enquiries_by_month': {entry['month'].strftime('%Y-%m'): entry['count'] for entry in college_enquiries_by_month},
+        }
+
+        return JsonResponse(response_data, status=200)
 
     except new_user.DoesNotExist:
-        return JsonResponse({'error': 'User not found or invalid token'}, status=404)
-    except Application.DoesNotExist:
-        return JsonResponse({'error': 'No applications found for the provided user.'}, status=404)
+        return JsonResponse({'error': 'Invalid token or new_user not found'}, status=404)
     except Exception as e:
-        return JsonResponse({'error': 'An error occurred', 'details': str(e)}, status=500)
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @csrf_exempt
@@ -2033,6 +2152,48 @@ def get_user_enquiries(request, user_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
     
+# @csrf_exempt
+# def college_status_counts(request, university_in_charge_id):
+#     auth_header = request.headers.get('Authorization')
+#     if not auth_header or not auth_header.startswith('Bearer '):
+#         return JsonResponse({'status': 'error', 'message': 'Token is missing or invalid format'}, status=400)
+
+#     token = auth_header.split(' ')[1]
+
+#     try:
+#         university_in_charge = UniversityInCharge.objects.get(id=university_in_charge_id, token=token)
+#     except UniversityInCharge.DoesNotExist:
+#         return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
+
+#     college_id = request.GET.get('college_id')
+
+#     if not college_id:
+#         return JsonResponse({'error': 'college_id is required'}, status=400)
+
+#     try:
+#         college_id = int(college_id)
+#     except ValueError:
+#         return JsonResponse({'error': 'Invalid college_id. It must be an integer.'}, status=400)
+
+#     if not College.objects.filter(id=college_id, university_in_charge=university_in_charge).exists():
+#         return JsonResponse({'error': 'College not found'}, status=404)
+
+#     try:
+#         enquiry_count = StudentEnquiry.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
+#         job_posted_count = Job1.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
+#         total_visitor_count = Visitor.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
+#         shortlisted_count = Application1.objects.filter(job__college_id=college_id, university_in_charge=university_in_charge, status='shortlisted').count()
+
+#         return JsonResponse({
+#             'total_visitor_count': total_visitor_count,
+#             'shortlisted_count': shortlisted_count,
+#             'job_posted_count': job_posted_count,
+#             'enquiry_count': enquiry_count
+#         }, status=200)
+
+#     except Exception as e:
+#         return JsonResponse({'error': str(e)}, status=500)
+
 @csrf_exempt
 def college_status_counts(request, university_in_charge_id):
     auth_header = request.headers.get('Authorization')
@@ -2047,7 +2208,6 @@ def college_status_counts(request, university_in_charge_id):
         return JsonResponse({'status': 'error', 'message': 'Invalid token or university in charge not found'}, status=404)
 
     college_id = request.GET.get('college_id')
-
     if not college_id:
         return JsonResponse({'error': 'college_id is required'}, status=400)
 
@@ -2065,12 +2225,49 @@ def college_status_counts(request, university_in_charge_id):
         total_visitor_count = Visitor.objects.filter(college_id=college_id, university_in_charge=university_in_charge).count()
         shortlisted_count = Application1.objects.filter(job__college_id=college_id, university_in_charge=university_in_charge, status='shortlisted').count()
 
-        return JsonResponse({
+        jobs_by_month = (
+            Job1.objects.filter(college_id=college_id, university_in_charge=university_in_charge)
+            .annotate(month=TruncMonth('published_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+
+        enquiries_by_month = (
+            StudentEnquiry.objects.filter(college_id=college_id, university_in_charge=university_in_charge)
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+
+        visitors_by_month = (
+            Visitor.objects.filter(college_id=college_id, university_in_charge=university_in_charge)
+            .annotate(month=TruncMonth('visited_at'))  
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+
+        shortlisted_by_month = (
+            Application1.objects.filter(job__college_id=college_id, university_in_charge=university_in_charge, status='shortlisted')
+            .annotate(month=TruncMonth('applied_at')) 
+            .values('month')
+            .annotate(count=Count('id'))
+            .order_by('month')
+        )
+        response_data = {
             'total_visitor_count': total_visitor_count,
             'shortlisted_count': shortlisted_count,
             'job_posted_count': job_posted_count,
-            'enquiry_count': enquiry_count
-        }, status=200)
+            'enquiry_count': enquiry_count,
+            'jobs_by_month': {job['month'].strftime('%Y-%m'): job['count'] for job in jobs_by_month},
+            'enquiries_by_month': {enquiry['month'].strftime('%Y-%m'): enquiry['count'] for enquiry in enquiries_by_month},
+            'visitors_by_month': {visitor['month'].strftime('%Y-%m'): visitor['count'] for visitor in visitors_by_month},
+            'shortlisted_by_month': {app['month'].strftime('%Y-%m'): app['count'] for app in shortlisted_by_month}
+        }
+
+        return JsonResponse(response_data, status=200)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -4073,7 +4270,62 @@ def submit_application_with_screening_for_college(request, job_id, university_in
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
 
+# def jobseeker_application_status_counts(request, jobseeker_id):
+#     auth_header = request.headers.get('Authorization')
+#     if not auth_header or not auth_header.startswith('Bearer '):
+#         return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
+
+#     token = auth_header.split(' ')[1]
+
+#     try:
+#         jobseeker = JobSeeker.objects.get(id=jobseeker_id,token=token)
+#     except JobSeeker.DoesNotExist:
+#         return JsonResponse({'error': 'Invalid token or job seeker not found'}, status=401)
+
+#     try:
+#         email = request.GET.get('email')
+#         if not email:
+#             return JsonResponse({'error': 'Email parameter is required'}, status=400)
+
+#         jobseeker = JobSeeker.objects.get(id=jobseeker_id, email=email)
+
+        # total_jobs_applied_count = (
+        #     Application.objects.filter(job_seeker=jobseeker).count() +
+        #     Application1.objects.filter(job_seeker=jobseeker).count()
+        # )
+        
+        # pending_count = (
+        #     Application.objects.filter(job_seeker=jobseeker, status='pending').count() +
+        #     Application1.objects.filter(job_seeker=jobseeker, status='pending').count()
+        # )
+        
+        # interview_scheduled_count = (
+        #     Application.objects.filter(job_seeker=jobseeker, status='interview_scheduled').count() +
+        #     Application1.objects.filter(job_seeker=jobseeker, status='interview_scheduled').count()
+        # )
+        
+        # rejected_count = (
+        #     Application.objects.filter(job_seeker=jobseeker, status='rejected').count() +
+        #     Application1.objects.filter(job_seeker=jobseeker, status='rejected').count()
+        # )
+
+#         return JsonResponse({
+#             'total_jobs_applied': total_jobs_applied_count,
+#             'pending_count': pending_count,
+#             'interview_scheduled_count': interview_scheduled_count,
+#             'rejected_count': rejected_count,
+#         })
+
+#     except JobSeeker.DoesNotExist:
+#         return JsonResponse({'error': 'Job seeker not found with the provided email.'}, status=404)
+#     except Exception as e:
+#         return JsonResponse({'error': 'An error occurred', 'details': str(e)}, status=500)
+
+@csrf_exempt
 def jobseeker_application_status_counts(request, jobseeker_id):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Invalid request method, only GET allowed'}, status=405)
+
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
@@ -4081,49 +4333,101 @@ def jobseeker_application_status_counts(request, jobseeker_id):
     token = auth_header.split(' ')[1]
 
     try:
-        jobseeker = JobSeeker.objects.get(id=jobseeker_id,token=token)
-    except JobSeeker.DoesNotExist:
-        return JsonResponse({'error': 'Invalid token or job seeker not found'}, status=401)
-
-    try:
         email = request.GET.get('email')
         if not email:
             return JsonResponse({'error': 'Email parameter is required'}, status=400)
-
-        jobseeker = JobSeeker.objects.get(id=jobseeker_id, email=email)
+        
+        jobseeker = JobSeeker.objects.get(id=jobseeker_id, token=token, email=email)
 
         total_jobs_applied_count = (
             Application.objects.filter(job_seeker=jobseeker).count() +
             Application1.objects.filter(job_seeker=jobseeker).count()
         )
-        
         pending_count = (
             Application.objects.filter(job_seeker=jobseeker, status='pending').count() +
             Application1.objects.filter(job_seeker=jobseeker, status='pending').count()
         )
-        
         interview_scheduled_count = (
             Application.objects.filter(job_seeker=jobseeker, status='interview_scheduled').count() +
             Application1.objects.filter(job_seeker=jobseeker, status='interview_scheduled').count()
         )
-        
         rejected_count = (
             Application.objects.filter(job_seeker=jobseeker, status='rejected').count() +
             Application1.objects.filter(job_seeker=jobseeker, status='rejected').count()
         )
 
-        return JsonResponse({
+        # Monthly counts
+        jobs_applied_by_month = (
+            list(Application.objects.filter(job_seeker=jobseeker)
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id'))) +
+            list(Application1.objects.filter(job_seeker=jobseeker)
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id')))
+        )
+        
+        pending_by_month = (
+            list(Application.objects.filter(job_seeker=jobseeker, status='pending')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id'))) +
+            list(Application1.objects.filter(job_seeker=jobseeker, status='pending')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id')))
+        )
+       
+        interview_scheduled_by_month = (
+            list(Application.objects.filter(job_seeker=jobseeker, status='interview_scheduled')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id'))) +
+            list(Application1.objects.filter(job_seeker=jobseeker, status='interview_scheduled')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id')))
+        )
+
+        rejected_by_month = (
+            list(Application.objects.filter(job_seeker=jobseeker, status='rejected')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id'))) +
+            list(Application1.objects.filter(job_seeker=jobseeker, status='rejected')
+                 .annotate(month=TruncMonth('applied_at'))
+                 .values('month')
+                 .annotate(count=Count('id')))
+        )
+
+
+        def format_counts(data):
+            counts = {}
+            for item in data:
+                month = item['month'].strftime('%Y-%m')
+                counts[month] = counts.get(month, 0) + item['count']
+            return counts
+
+        response_data = {
             'total_jobs_applied': total_jobs_applied_count,
             'pending_count': pending_count,
             'interview_scheduled_count': interview_scheduled_count,
             'rejected_count': rejected_count,
-        })
+            'jobs_applied_by_month': format_counts(jobs_applied_by_month),
+            'pending_by_month': format_counts(pending_by_month),
+            'rejected_by_month': format_counts(rejected_by_month),
+            'interview_scheduled_by_month': format_counts(interview_scheduled_by_month)
+        }
+
+        return JsonResponse(response_data, status=200)
 
     except JobSeeker.DoesNotExist:
-        return JsonResponse({'error': 'Job seeker not found with the provided email.'}, status=404)
+        return JsonResponse({'error': 'Invalid token or job seeker not found'}, status=404)
     except Exception as e:
-        return JsonResponse({'error': 'An error occurred', 'details': str(e)}, status=500)
-    
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt   
 def filterjobseeker__applied_jobs(request, jobseeker_id):
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -4678,7 +4982,7 @@ def jobseeker_apply_for_job(request, job_id, jobseeker_id):
                 phone_number=jobseeker.mobile_number,
                 resume=None,  
                 cover_letter="No cover letter provided",  
-                skills="No skills provided",  
+                skills=jobseeker_resume.skills,  
                 university_in_charge=university_in_charge, 
                 bio=jobseeker_resume.bio,
                 education=education_entries,
@@ -4694,7 +4998,7 @@ def jobseeker_apply_for_job(request, job_id, jobseeker_id):
                 phone_number=jobseeker.mobile_number,
                 resume=None,  
                 cover_letter="No cover letter provided",  
-                skills="No skills provided", 
+                skills=jobseeker_resume.skills, 
                 company_in_charge=company_in_charge, 
                 bio=jobseeker_resume.bio,
                 education=education_entries,
