@@ -373,7 +373,7 @@ class DeleteUserAccountView(View):
         try:
             auth_header = request.headers.get('Authorization', '')
             token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
-            
+
             data = json.loads(request.body.decode('utf-8'))
             confirmation = data.get('confirmation', False)
 

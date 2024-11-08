@@ -633,7 +633,7 @@ class JobSeeker_Reference(models.Model):
         return self.name
 
 class JobSeeker_Certification(models.Model):
-    job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE) 
+    job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE)
     resume = models.ForeignKey(JobSeeker_Resume, related_name='certifications', on_delete=models.CASCADE)
     name = models.CharField(max_length=100, default='Unknown')
     start_date = models.DateField(null=True, blank=True)

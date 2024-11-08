@@ -746,7 +746,7 @@ def all_inbox(request):
     email = request.GET.get('email')
     if not email:
         return JsonResponse({'status': 'false', 'message': 'Email is required'}, status=400)
-    
+
     filter_value = request.GET.get('filter')
 
     auth_header = request.headers.get('Authorization')
