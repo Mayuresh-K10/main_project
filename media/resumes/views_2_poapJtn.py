@@ -1090,7 +1090,7 @@ class ChangePasswordConsultantView(View):
             consultant.password = make_password(new_password)
             consultant.save()
             return JsonResponse({'success': True, 'message': 'Password changed successfully'}, status=200)
-        
+
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
         except Exception as e:

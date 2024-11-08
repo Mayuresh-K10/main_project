@@ -656,11 +656,11 @@ def mark_as_read(request, notification_id):
     try:
         notification = get_object_or_404(Notification, id=notification_id, user=user)
         form = MarkAsReadForm({'is_read': True}, instance=notification)
-        
+
         if form.is_valid():
             form.save()
             return api_response({"status": "success", "message": "Notification marked as read."})
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
