@@ -681,7 +681,7 @@ def create_notification(request):
     try:
         data = json.loads(request.body)
         form = NotificationForm(data)
-        
+
         if form.is_valid():
             notification = form.save(commit=False)
             notification.user = user
@@ -696,9 +696,9 @@ def create_notification(request):
                 [user.email],
                 fail_silently=False,
             )
-            
+
             return api_response({"status": "success", "message": "Notification created successfully."}, status=201)
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except json.JSONDecodeError:
         return api_response({"status": "error", "message": "Invalid JSON data"}, status=400)
@@ -751,11 +751,11 @@ def mark_as_read1(request, notification_id):
     try:
         notification = get_object_or_404(Notification1, id=notification_id, user=user)
         form = MarkAsReadForm1({'is_read': True}, instance=notification)
-        
+
         if form.is_valid():
             form.save()
             return api_response({"status": "success", "message": "Notification marked as read."})
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
@@ -776,15 +776,15 @@ def create_notification1(request):
     try:
         data = json.loads(request.body)
         form = NotificationForm1(data)
-        
+
         if form.is_valid():
             notification = form.save(commit=False)
             notification.user = user
             notification.save()
-            
+
             subject = "New Notification Created"
             message = f"Dear {user.first_name},\n\nYou have a new notification:\n\nTitle: {notification.title}\nMessage: {notification.message}\n\nThank you for using our service."
-            
+
             send_mail(
                 subject,
                 message,
@@ -792,9 +792,9 @@ def create_notification1(request):
                 [user.email],
                 fail_silently=False,
             )
-            
+
             return api_response({"status": "success", "message": "Notification created successfully."}, status=201)
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except json.JSONDecodeError:
         return api_response({"status": "error", "message": "Invalid JSON data"}, status=400)
@@ -849,11 +849,11 @@ def mark_as_read2(request, notification_id):
     try:
         notification = get_object_or_404(Notification2, id=notification_id, user=user)
         form = MarkAsReadForm2({'is_read': True}, instance=notification)
-        
+
         if form.is_valid():
             form.save()
             return api_response({"status": "success", "message": "Notification marked as read."})
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
@@ -874,12 +874,12 @@ def create_notification2(request):
     try:
         data = json.loads(request.body)
         form = NotificationForm2(data)
-        
+
         if form.is_valid():
             notification = form.save(commit=False)
             notification.user = user
             notification.save()
-            
+
             subject = "New Notification Created"
             message = f"A new notification has been created:\n\nTitle: {notification.title}\nMessage: {notification.message}\n\nThank you for using our service."
             send_mail(
@@ -889,9 +889,9 @@ def create_notification2(request):
                 [user.official_email],
                 fail_silently=False,
             )
-            
+
             return api_response({"status": "success", "message": "Notification created successfully."}, status=201)
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except json.JSONDecodeError:
         return api_response({"status": "error", "message": "Invalid JSON data"}, status=400)
@@ -946,11 +946,11 @@ def mark_as_read3(request, notification_id):
     try:
         notification = get_object_or_404(Notification3, id=notification_id, user=user)
         form = MarkAsReadForm3({'is_read': True}, instance=notification)
-        
+
         if form.is_valid():
             form.save()
             return api_response({"status": "success", "message": "Notification marked as read."})
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
@@ -971,12 +971,12 @@ def create_notification3(request):
     try:
         data = json.loads(request.body)
         form = NotificationForm3(data)
-        
+
         if form.is_valid():
             notification = form.save(commit=False)
             notification.user = user
             notification.save()
-            
+
             subject = "New Notification Created"
             message = f"A new notification has been created:\n\nTitle: {notification.title}\nMessage: {notification.message}\n\nThank you for using our service."
             send_mail(
@@ -986,13 +986,12 @@ def create_notification3(request):
                 [user.official_email],
                 fail_silently=False,
             )
-            
+
             return api_response({"status": "success", "message": "Notification created successfully."}, status=201)
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except json.JSONDecodeError:
         return api_response({"status": "error", "message": "Invalid JSON data"}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
 
-#k
