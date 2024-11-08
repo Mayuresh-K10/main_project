@@ -223,7 +223,6 @@ def submit_answer(request):
     except Exception as e:
         return api_response(success=False, error='An error occurred while submitting the answer', details=str(e), status=500)
 
-    
 @method_decorator(csrf_exempt, name='dispatch')
 @require_GET
 def get_session_status(request, session_id):

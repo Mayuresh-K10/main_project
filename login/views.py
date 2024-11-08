@@ -1070,7 +1070,7 @@ class ChangePasswordConsultantView(View):
             auth_header = request.headers.get('Authorization')
             if not auth_header or not auth_header.startswith('Bearer '):
                 return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
-            
+
             token = auth_header.split(' ')[1]
 
             data = json.loads(request.body.decode('utf-8'))
@@ -1080,7 +1080,7 @@ class ChangePasswordConsultantView(View):
                 return JsonResponse({'error': 'New password and confirmation are required'}, status=400)
             if new_password != confirm_password:
                 return JsonResponse({'error': 'Passwords do not match'}, status=400)
-            
+
             consultant = Consultant.objects.filter(token=token).first()
             if not consultant:
                 return JsonResponse({'error': 'Invalid token'}, status=404)

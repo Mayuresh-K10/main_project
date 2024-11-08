@@ -1072,7 +1072,7 @@ class ChangePasswordConsultantView(View):
             auth_header = request.headers.get('Authorization')
             if not auth_header or not auth_header.startswith('Bearer '):
                 return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
-            
+
             token = auth_header.split(' ')[1]
 
             data = json.loads(request.body.decode('utf-8'))
