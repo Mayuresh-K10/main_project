@@ -540,7 +540,7 @@ from .models import Messages, Attachment, new_user, JobSeeker, CompanyInCharge, 
 def search_all(request):
     if request.method != "GET":
         return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
-	
+
     try:
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
@@ -593,10 +593,6 @@ def search_all(request):
             'message': str(e)
         }, status=500)
 
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from django.db.models import Q
-from .models import new_user, JobSeeker, CompanyInCharge, Messages
 
 @csrf_exempt
 def getMessages(request):
@@ -615,7 +611,6 @@ def getMessages(request):
         return JsonResponse({'status': 'false', 'message': 'Required fields missing'}, status=400)
 
     try:
-        # Fetch sender based on token and email
         sender = None
         sender_field = None
         if new_user.objects.filter(token=token, email=sender_email).exists():
@@ -631,7 +626,6 @@ def getMessages(request):
         if not sender:
             return JsonResponse({'status': 'false', 'message': 'Sender email does not match the token'}, status=403)
 
-        # Fetch recipient based on email
         recipient = None
         recipient_field = None
         if new_user.objects.filter(email=recipient_email).exists():
@@ -647,7 +641,6 @@ def getMessages(request):
         if not recipient:
             return JsonResponse({'status': 'false', 'message': 'Recipient not found'}, status=404)
 
-        # Filter messages in the specified direction (sender to recipient only)
         messages = Messages.objects.filter(
             **{sender_field: sender, recipient_field: recipient}
         ).prefetch_related('attachments')
@@ -671,7 +664,6 @@ def getMessages(request):
             for message in messages
         ]
 
-        # Mark messages as read
         messages.filter(is_read=False).update(is_read=True)
 
         if not messages_data:
@@ -820,14 +812,13 @@ def all_inbox(request):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    
 ##
-   
+
 @csrf_exempt
 def searchs_all(request):
     if request.method != "GET":
         return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
-	
+
     try:
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
@@ -879,7 +870,7 @@ def searchs_all(request):
             'status': 'error',
             'message': str(e)
         }, status=500)
-        
+
 @csrf_exempt
 def send_message(request):
     if request.method != 'POST':
@@ -1028,11 +1019,11 @@ def get_messages(request):
 def my_inbox(request):
     if request.method != "GET":
         return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
-    
+
     email = request.GET.get('email')
     if not email:
         return JsonResponse({'status': 'false', 'message': 'Email is required'}, status=400)
-    
+
     filter_value = request.GET.get('filter')
 
     auth_header = request.headers.get('Authorization')
@@ -1097,6 +1088,6 @@ def my_inbox(request):
         return JsonResponse({'status': 'success', 'messages': message_list}, status=200)
 
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)       
-            
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 

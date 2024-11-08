@@ -26,7 +26,7 @@ urlpatterns = [
       path('get-all-messages/', views.getMessages, name='get_messages'),
       path('send-message-all/', views.sendMessage, name='send_message'),
       path('inbox-all/', views.all_inbox, name='inbox'),
-      
+
       path('searchs-all/', views.searchs_all, name='search_contacts'),
       path('gets-all-messages/', views.get_messages, name='get_messages'),
       path('sends-message-all/', views.send_message, name='send_message'),

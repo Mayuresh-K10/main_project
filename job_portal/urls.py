@@ -5,7 +5,7 @@ from .views import  CollegeListCreateView,  CompanyListCreateView, CompanyDetail
 urlpatterns = [
     path('home', views.home, name='home'),
     path('get-csrf-token/', views.get_csrf_token, name='get_csrf_token'),
-    
+
     ## Company Dashboard
     path('company-status-counts/<int:company_in_charge_id>/', views.company_status_counts, name='company_status'),
     path('companies/<int:company_in_charge_id>/', CompanyListCreateView.as_view(), name='company_list_create'),
@@ -79,13 +79,13 @@ urlpatterns = [
     path('clg-comp-inbox/', views.clg_comp_inbox, name='inbox'),
     path('fetch-user-skills-jobs/<int:user_id>/', views.fetch_jobs_by_new_user_skills, name='fetch-skills'),
     path('user-apply-job/<int:job_id>/<int:user_id>/', views.user_apply_for_job, name='user-apply-job'),
-    
+
     ## extra functionalities
     path('jobs/', views.job_list, name='job_list'),
     path('jobs/<int:job_id>/', views.job_detail, name='job_detail'),
     path('applications/<int:job_id>/', views.job_applications, name='job_applications'),
     path('job-status/<int:job_id>/', views.job_status, name='job_status'),
-    path('fetch-companies/', views.fetch_all_companies, name='fetch-companies'), 
+    path('fetch-companies/', views.fetch_all_companies, name='fetch-companies'),
     path('company/<int:pk>/', CompanyDetailView.as_view(), name='company_detail'),
     path('find_status/', views.find_status, name="find_status"),
     path('candidate_profile/', views.candidate_profile, name ="candidate_profile"),
@@ -103,7 +103,7 @@ urlpatterns = [
     path('fetch_status/', views.fetch_status_choices, name='fetch_status'),
     path('sort-saved-jobs/', views.sort_saved_jobs, name='sort-saved-jobs'),
     path('create-job-alerts/', views.create_job_alert, name='create-job-alert'),
-    path('save-student/<int:user_id>/', views.save_student, name='save-student'),    
+    path('save-student/<int:user_id>/', views.save_student, name='save-student'),
     path('fetch-clg-jobs/', views.fetch_colleges_jobs, name='fetch-clg-jobs'),
     path('fetch-colleges/', views.fetch_colleges, name='fetch-colleges'),
     # path('api-token-auth/', CustomObtainAuthToken.as_view(), name='api_token_auth'),

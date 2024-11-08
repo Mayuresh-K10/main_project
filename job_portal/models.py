@@ -1,7 +1,6 @@
 import uuid
 from django.db import models # type: ignore
 from django.utils import timezone # type: ignore
-from django.contrib.auth.models import User
 from login.models import CompanyInCharge, JobSeeker, UniversityInCharge, new_user
 
 class Job(models.Model):
@@ -38,7 +37,7 @@ class Job(models.Model):
 
     def __str__(self):
         return self.job_title
-    
+
     def save(self, *args, **kwargs):
      if not self.unique_job_id_as_int:
           self.unique_job_id_as_int = int(str(self.unique_job_id.int)[-16:])
@@ -215,7 +214,7 @@ class CandidateStatus_under_review(models.Model):
     status = models.CharField(max_length=20,default='under_review')
     company_name = models.CharField(max_length=255)
     job_id = models.IntegerField()
-    
+
 class Candidate1Status_selected(models.Model):
     first_name = models.CharField(max_length=255,default='John')
     last_name = models.CharField(max_length=255,default='Doe')
@@ -243,7 +242,6 @@ class Candidate1Status_under_review(models.Model):
     status = models.CharField(max_length=20,default='under_review')
     college_id = models.IntegerField()
     job_id = models.IntegerField()
-    
 
 class Message(models.Model):
     company_in_charge = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE, null=True, blank=True)
@@ -307,7 +305,7 @@ class CompanyScreeningAnswer(models.Model):
 
     def __str__(self):
         return f"Answer for {self.question.question_text[:50]}"
-    
+
 class CollegeScreeningQuestion(models.Model):
     university_in_charge = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE)
     job = models.ForeignKey('Job1', related_name='screening_questions', on_delete=models.CASCADE)
@@ -324,7 +322,7 @@ class CollegeScreeningAnswer(models.Model):
     answer_text = models.TextField()
 
     def __str__(self):
-        return f"Answer for {self.question.question_text[:50]}"    
+        return f"Answer for {self.question.question_text[:50]}"
 
 # class MembershipPlan(models.Model):
 #     PLAN_CHOICES = [
@@ -393,7 +391,7 @@ class Job1(models.Model):
 
     def __str__(self):
         return self.job_title
-    
+
     class Meta:
         db_table = 'job1'  # Custom table name for Job1
 
@@ -520,8 +518,7 @@ class Interview(models.Model):
     user = models.ForeignKey(new_user, on_delete=models.CASCADE,null=True, blank=True)
     job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE,null=True, blank=True)
     company_in_charge = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE,null=True, blank=True)
-   
-    
+
     def time_left(self):
         """Returns the time left until the interview, or None if in the past"""
         time_diff = self.interview_date - timezone.now()
@@ -657,7 +654,7 @@ class JobSeeker_Publications(models.Model):
     publisher = models.CharField(max_length=100, default='Unknown')
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
-    
+
 class Membership(models.Model):
     company_in_charge = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
@@ -683,7 +680,7 @@ class  CollegeMembership(models.Model):
 
     def __str__(self):
         return self.name
-    
+
 class Advertisement(models.Model):
     company_in_charge = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
@@ -709,5 +706,5 @@ class CollegeAdvertisement(models.Model):
     target_audience = models.CharField(max_length=100)
 
     def __str__(self):
-        return self.name     
-    
+        return self.name
+

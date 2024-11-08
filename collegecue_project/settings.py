@@ -220,7 +220,7 @@ AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
     # 'social_core.backends.facebook.FacebookOAuth2',
-    # 'social_core.backends.linkedin.LinkedinOAuth2', 
+    # 'social_core.backends.linkedin.LinkedinOAuth2',
 ]
 
 # SOCIALACCOUNT_PROVIDERS = {
@@ -230,7 +230,7 @@ AUTHENTICATION_BACKENDS = [
 #             'access_type': 'online',
 #         },
 #         'APP': {
-#             'client_id': os.getenv('GOOGLE_CLIENT_ID'), 
+#             'client_id': os.getenv('GOOGLE_CLIENT_ID'),
 #             'secret': os.getenv('GOOGLE_SECRET'),
 #         }
 #     },

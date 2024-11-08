@@ -35,7 +35,7 @@ class StartProctoringSessionView(View):
         try:
             auth_header = request.headers.get('Authorization', '')
             token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
-            
+
             form = StartProctoringSessionForm(json.loads(request.body.decode('utf-8')))
             if not form.is_valid():
                 return JsonResponse({'error': 'Invalid data'}, status=400)
@@ -186,7 +186,7 @@ def submit_answer(request):
 
         question = get_object_or_404(Question.objects.only('id', 'status', 'correct_option'), exam=session.exam, question_no=question_no)
 
-        user_response = UserResponse.objects.filter(user=user, question=question, session=session).first() 
+        user_response = UserResponse.objects.filter(user=user, question=question, session=session).first()
         if clear_response:
             if user_response:
                 if user_response.selected_option == question.correct_option:
@@ -461,7 +461,7 @@ def fetch_user_score(user, exam_id):
         user_score = UserScore.objects.filter(user=user, exam_id=exam_id).first()
         return user_score.score if user_score else 0
     except UserScore.DoesNotExist:
-        return 0 
+        return 0
 
 @csrf_exempt
 @require_POST

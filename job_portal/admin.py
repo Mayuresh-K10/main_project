@@ -17,23 +17,16 @@ admin.site.register(Education)
 admin.site.register(Achievements)
 admin.site.register(Certification)
 admin.site.register(Objective)
-# admin.site.register(MembershipPlan)
 admin.site.register(College)
 admin.site.register(CollegeEnquiry)
 admin.site.register(Application1)
 admin.site.register(Visitor)
 admin.site.register(Job1)
-# admin.site.register(UserSubscription)
 admin.site.register(CompanyScreeningQuestion)
 admin.site.register(CompanyScreeningAnswer)
-# admin.site.register(Message)
-# admin.site.register(Attachment)
 admin.site.register(Student)
 admin.site.register(StudentEnquiry)
 admin.site.register(Interview)
-# admin.site.register(College_Message)
-# admin.site.register(College_Attachment)
-
 
 
 

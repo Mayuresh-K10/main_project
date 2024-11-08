@@ -88,7 +88,7 @@ class Attachment(models.Model):
 
     def __str__(self):
         return f"Attachment for message {self.message.id}"
-    
+
 class Messages1(models.Model):
     student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True)
     candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True)
@@ -108,4 +108,4 @@ class Attachment1(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Attachment for message {self.message.id}"    
+        return f"Attachment for message {self.message.id}"

@@ -32,5 +32,5 @@ urlpatterns = [
     path('Company-notifications/read/<int:notification_id>/', views.mark_as_read3, name='mark_as_read3'),
     path('Company-notifications/create/', views.create_notification3, name='create_notification3'),
 ]
- 
+
  #k

@@ -3,14 +3,14 @@ from django.core.mail import send_mail # type: ignore
 from django.conf import settings # type: ignore
 from django.middleware.csrf import get_token # type: ignore
 from django.views.decorators.csrf import csrf_exempt, csrf_protect # type: ignore
-from .utils import (send_data_to_google_sheet3,send_data_to_google_sheet4,
+from .utils import (send_data_to_google_sheet3,send_data_to_google_sheet4, # type: ignore
 send_data_to_google_sheet2,send_data_to_google_sheets)
 import secrets,json,requests, os # type: ignore
 from .models import CompanyInCharge, Consultant, JobSeeker, UniversityInCharge, new_user
 from django.contrib.auth.hashers import make_password, check_password # type: ignore
 from django.utils.decorators import method_decorator # type: ignore
 from django.views import View # type: ignore
-from .forms import (JobSeekerRegistrationForm, UniversityInChargeForm,CompanyInChargeForm,ForgotForm,
+from .forms import (JobSeekerRegistrationForm, UniversityInChargeForm,CompanyInChargeForm,ForgotForm, # type: ignore
 SubscriptionForm1,ConsultantForm,Forgot2Form
 ,VerifyForm,SubscriptionForm)
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger # type: ignore
@@ -223,7 +223,7 @@ class Verify_view(View):
 
             stored_email = request.session.get('email')
             user = new_user.objects.filter(email=stored_email, token=token).first()
-            
+
             if not user:
                 return JsonResponse({'error': 'Invalid token or user not found'}, status=404)
             

@@ -93,7 +93,7 @@ class  CollegeMembership(models.Model):
 
     def __str__(self):
         return self.name
-    
+
 
 
 class Advertisement(models.Model):
