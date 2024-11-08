@@ -823,7 +823,7 @@ def searchs_all(request):
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return JsonResponse({'error': 'Token is missing or in an invalid format'}, status=400)
-        
+
         token = auth_header.split(' ')[1]
         sender_email = request.GET.get('sender_email')
 

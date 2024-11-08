@@ -117,7 +117,7 @@ class RecordProctoringEventView(View):
         try:
             auth_header = request.headers.get('Authorization', '')
             token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
-            
+
             user = new_user.objects.filter(token=token).first()
             if not user:
                 return JsonResponse({'error': 'Invalid token'}, status=404)
