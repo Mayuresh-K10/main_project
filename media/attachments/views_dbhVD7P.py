@@ -418,7 +418,7 @@ def get_details(request):
             user = new_user.objects.filter(token=token).first()
             if not user:
                 return JsonResponse({'error': 'Invalid token'}, status=403)
-            
+
             data = json.loads(request.body)
             session_id = data.get('session_id')
             if not session_id:

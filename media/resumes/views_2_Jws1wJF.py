@@ -1081,7 +1081,7 @@ class ChangePasswordConsultantView(View):
                 return JsonResponse({'error': 'New password and confirmation are required'}, status=400)
             if new_password != confirm_password:
                 return JsonResponse({'error': 'Passwords do not match'}, status=400)
-            
+
             consultant = Consultant.objects.filter(token=token).first()
             if not consultant:
                 return JsonResponse({'error': 'Invalid token'}, status=404)

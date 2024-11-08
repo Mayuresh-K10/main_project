@@ -571,7 +571,7 @@ def get_previous_question(request, session_id, current_question_no):
             return JsonResponse({'success': False, 'error': 'No previous question available'}, status=404)
 
         return JsonResponse(previous_question, status=200)
-        
+
     except Exception as e:
         return JsonResponse({'success': False, 'error': 'An error occurred while fetching the previous question', 'details': str(e)}, status=500)
 
