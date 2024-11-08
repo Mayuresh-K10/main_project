@@ -60,7 +60,7 @@ class StartProctoringSessionView(View):
             )
 
             return JsonResponse({'success': True, 'session_id': session.id}, status=200)
-        
+
         except (json.JSONDecodeError, IndexError):
             return JsonResponse({'error': 'Invalid JSON or token'}, status=400)
         except Exception as e:

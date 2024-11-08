@@ -545,7 +545,7 @@ def search_all(request):
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return JsonResponse({'error': 'Token is missing or in an invalid format'}, status=400)
-        
+
         token = auth_header.split(' ')[1]
         sender_email = request.GET.get('sender_email')
 
@@ -1013,8 +1013,8 @@ def get_messages(request):
         return JsonResponse({'status': 'success', 'messages': messages_data}, status=200)
 
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500) 
-    
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 @csrf_exempt
 def my_inbox(request):
     if request.method != "GET":

@@ -93,7 +93,6 @@ class  CollegeMembership(models.Model):
 
     def __str__(self):
         return self.name
-    
 
 
 class Advertisement(models.Model):
@@ -108,8 +107,6 @@ class Advertisement(models.Model):
 
     def __str__(self):
         return self.name
-
-
 
 class CollegeAdvertisement(models.Model):
     university_in_charge = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE, null=True, blank=True)

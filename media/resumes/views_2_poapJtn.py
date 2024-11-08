@@ -226,7 +226,7 @@ class Verify_view(View):
 
             if not user:
                 return JsonResponse({'error': 'Invalid token or user not found'}, status=404)
-            
+
             if form.is_valid():
                 verify = form.save()
                 otp_entered = verify.otp

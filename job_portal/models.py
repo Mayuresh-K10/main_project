@@ -254,11 +254,11 @@ class Message(models.Model):
     def __str__(self):
         sender_email = (
             self.company_in_charge.official_email if self.company_in_charge else
-            (self.receiptent_new_user.email if self.receiptent_new_user else 
+            (self.receiptent_new_user.email if self.receiptent_new_user else
             (self.receiptent_job_seeker.email if self.receiptent_job_seeker else "Unknown Sender"))
         )
         recipient_email = (
-            self.receiptent_new_user.email if self.receiptent_new_user else 
+            self.receiptent_new_user.email if self.receiptent_new_user else
             (self.receiptent_job_seeker.email if self.receiptent_job_seeker else "Unknown Recipient")
         )
         return f"{sender_email} -> {recipient_email}"
@@ -612,7 +612,7 @@ class JobSeeker_Experience(models.Model):
         return f"{self.job_title} at {self.company_name}"
 
 class JobSeeker_Project(models.Model):
-    job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE) 
+    job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE)
     resume = models.ForeignKey(JobSeeker_Resume, related_name='projects', on_delete=models.CASCADE)
     title = models.CharField(max_length=100, default='Untitled Project')
     description = models.TextField(default='No description')
@@ -692,7 +692,6 @@ class Advertisement(models.Model):
     target_audience = models.CharField(max_length=100)
 
     def __str__(self):
-        
         return self.name
 
 class CollegeAdvertisement(models.Model):
