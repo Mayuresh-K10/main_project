@@ -540,7 +540,7 @@ class College_Message(models.Model):
     def __str__(self):
         sender_email = self.university_in_charge.official_email if self.university_in_charge else "Unknown Sender"
         recipient_email = (
-            self.receiptent_new_user.email if self.receiptent_new_user else 
+            self.receiptent_new_user.email if self.receiptent_new_user else
             (self.receiptent_job_seeker.email if self.receiptent_job_seeker else "Unknown Recipient")
         )
         return f"{sender_email} -> {recipient_email}"
@@ -623,7 +623,7 @@ class JobSeeker_Project(models.Model):
         return self.title
 
 class JobSeeker_Reference(models.Model):
-    job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE) 
+    job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE)
     resume = models.ForeignKey(JobSeeker_Resume, related_name='references', on_delete=models.CASCADE)
     name = models.CharField(max_length=100, default='Unknown')
     contact_info = models.CharField(max_length=100, default='Not provided')

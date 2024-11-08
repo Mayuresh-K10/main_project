@@ -742,7 +742,7 @@ def sendMessage(request):
 def all_inbox(request):
     if request.method != "GET":
         return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
-    
+
     email = request.GET.get('email')
     if not email:
         return JsonResponse({'status': 'false', 'message': 'Email is required'}, status=400)

@@ -76,7 +76,7 @@ class EndProctoringSessionView(View):
             form = EndProctoringSessionForm(json.loads(request.body.decode('utf-8')))
             if not form.is_valid():
                 return JsonResponse({'error': 'Invalid data'}, status=400)
-            
+
             user = new_user.objects.filter(token=token).first()
             if not user:
                 return JsonResponse({'error': 'Invalid token'}, status=404)

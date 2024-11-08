@@ -319,7 +319,7 @@ class Forgot2_view(View):
 
             if password != confirm_password:
                 return JsonResponse({'error': 'Passwords did not match'}, status=400)
-            
+
             stored_email = request.session.get('email')
             user = new_user.objects.filter(email=stored_email, token=token).first()
 
