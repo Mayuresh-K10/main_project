@@ -1,0 +1,801 @@
+1) models.py ->
+
+from django.db import models
+from login.models import CompanyInCharge, JobSeeker, UniversityInCharge, new_user
+
+class Messages(models.Model):
+    student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True)
+    candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True)
+    company = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE, null=True, blank=True)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    recipient_student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True, related_name='received_messages')
+    recipient_candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True, related_name='received_messages')
+    recipient_company = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE, null=True, blank=True, related_name='received_messages')
+
+    class Meta:
+        ordering = ['timestamp']
+
+class Attachment(models.Model):
+    message = models.ForeignKey(Messages, related_name='attachments', on_delete=models.CASCADE)
+    file = models.FileField(upload_to='attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment for message {self.message.id}"
+
+class Messages1(models.Model):
+    student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True)
+    candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True)
+    college = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE, null=True, blank=True)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    recipient_student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True, related_name='user_received_messages')
+    recipient_candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True, related_name='jobseeker_received_messages')
+    recipient_college = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE, null=True, blank=True, related_name='college_received_messages')
+
+
+    class Meta:
+        ordering = ['timestamp']
+
+
+class Attachment1(models.Model):
+    message = models.ForeignKey(Messages1, related_name='attachments', on_delete=models.CASCADE)
+    file = models.FileField(upload_to='attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment for message {self.message.id}"
+
+
+2) views.py  ->
+
+from django.db.models import Q
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Messages, Attachment, new_user, JobSeeker, CompanyInCharge, UniversityInCharge, Messages1, Attachment1
+
+a)
+
+@csrf_exempt
+def search_all(request):
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return JsonResponse({'error': 'Token is missing or in an invalid format'}, status=400)
+
+        token = auth_header.split(' ')[1]
+        sender_email = request.GET.get('sender_email')
+
+        sender = None
+        if new_user.objects.filter(email=sender_email, token=token).exists():
+            sender = new_user.objects.get(email=sender_email, token=token)
+        elif JobSeeker.objects.filter(email=sender_email, token=token).exists():
+            sender = JobSeeker.objects.get(email=sender_email, token=token)
+        elif CompanyInCharge.objects.filter(official_email=sender_email, token=token).exists():
+            sender = CompanyInCharge.objects.get(official_email=sender_email, token=token)
+
+        if not sender:
+            return JsonResponse({'status': 'false', 'message': 'Sender email does not match the token'}, status=403)
+
+        query = request.GET.get('q', '').strip()
+
+        student_contacts = new_user.objects.all().values('id', 'firstname', 'lastname', 'email')
+        jobseeker_contacts = JobSeeker.objects.all().values('id', 'first_name', 'last_name', 'email')
+        company_contacts = CompanyInCharge.objects.all().values('id', 'company_name', 'official_email')
+
+        if query:
+            student_contacts = student_contacts.filter(
+                Q(firstname__icontains=query) |
+                Q(email__icontains=query)
+            )
+            jobseeker_contacts = jobseeker_contacts.filter(
+                Q(first_name__icontains=query) |
+                Q(email__icontains=query)
+            )
+            company_contacts = company_contacts.filter(
+                Q(company_name__icontains=query) |
+                Q(official_email__icontains=query)
+            )
+
+        contact_list = list(student_contacts) + list(jobseeker_contacts) + list(company_contacts)
+
+        return JsonResponse({
+            'status': 'success',
+            'contacts': contact_list if contact_list else []
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+b)
+
+@csrf_exempt
+def getMessages(request):
+    if request.method == 'GET':
+        sender_email = request.GET.get('sender_email')
+        recipient_email = request.GET.get('recipient_email')
+
+        if not sender_email or not recipient_email:
+            return JsonResponse({"status": "error", "message": "Sender email and recipient email are required."})
+
+        def get_user_and_filters(email):
+            try:
+                user = new_user.objects.get(email=email)
+                return user, Q(student=user), Q(recipient_student=user)
+            except new_user.DoesNotExist:
+                try:
+                    user = JobSeeker.objects.get(email=email)
+                    return user, Q(candidate=user), Q(recipient_candidate=user)
+                except JobSeeker.DoesNotExist:
+                    try:
+                        user = CompanyInCharge.objects.get(official_email=email)
+                        return user, Q(company=user), Q(recipient_company=user)
+                    except CompanyInCharge.DoesNotExist:
+                        return None, None, None
+
+        sender, sender_filter, sender_recipient_filter = get_user_and_filters(sender_email)
+        recipient, recipient_filter, recipient_sender_filter = get_user_and_filters(recipient_email)
+
+        if not sender or not recipient:
+            return JsonResponse({"status": "error", "message": "Sender or recipient email not found."})
+
+        messages = Messages.objects.filter(
+            (sender_filter & recipient_sender_filter) | (recipient_filter & sender_recipient_filter)
+        )
+
+        if not messages.exists():
+            return JsonResponse({"status": "success", "message": "No messages found."})
+
+        messages.filter(is_read=False).update(is_read=True)
+
+        message_list = []
+        for message in messages:
+            sender_email = getattr(message.student, 'email', None) or getattr(message.candidate, 'email', None) or getattr(message.company, 'official_email', None)
+            recipient_email = getattr(message.recipient_student, 'email', None) or getattr(message.recipient_candidate, 'email', None) or getattr(message.recipient_company, 'official_email', None)
+
+            message_data = {
+                "sender_email": sender_email,
+                "recipient_email": recipient_email,
+                "content": message.content,
+                "timestamp": message.timestamp,
+                "is_read": message.is_read,
+                "attachments": [
+                    {"file_url": attachment.file.url, "uploaded_at": attachment.uploaded_at}
+                    for attachment in message.attachments.all()
+                ]
+            }
+            message_list.append(message_data)
+
+        return JsonResponse({"status": "success", "messages": message_list})
+
+    return JsonResponse({"status": "error", "message": "Invalid request method. Please use GET."})
+
+c)
+
+@csrf_exempt
+def sendMessage(request):
+    if request.method == 'POST':
+        sender_email = request.POST.get('sender_email')
+        recipient_email = request.POST.get('recipient_email')
+        content = request.POST.get('content')
+
+        if not sender_email or not recipient_email or not content:
+            return JsonResponse({
+                "status": "error",
+                "message": "Sender email, recipient email, and content are required."
+            })
+
+        sender = None
+        recipient = None
+
+        try:
+            sender = new_user.objects.get(email=sender_email)
+        except new_user.DoesNotExist:
+            try:
+                sender = JobSeeker.objects.get(email=sender_email)
+            except JobSeeker.DoesNotExist:
+                try:
+                    sender = CompanyInCharge.objects.get(official_email=sender_email)
+                except CompanyInCharge.DoesNotExist:
+                    return JsonResponse({
+                        "status": "error",
+                        "message": "Sender email not found in any valid models."
+                    })
+
+        try:
+            recipient = new_user.objects.get(email=recipient_email)
+        except new_user.DoesNotExist:
+            try:
+                recipient = JobSeeker.objects.get(email=recipient_email)
+            except JobSeeker.DoesNotExist:
+                try:
+                    recipient = CompanyInCharge.objects.get(official_email=recipient_email)
+                except CompanyInCharge.DoesNotExist:
+                    return JsonResponse({
+                        "status": "error",
+                        "message": "Recipient email not found in any valid models."
+                    })
+
+        sender_student = None
+        sender_candidate = None
+        sender_company = None
+
+        recipient_student = None
+        recipient_candidate = None
+        recipient_company = None
+
+        if isinstance(sender, new_user):
+            sender_student = sender  
+        elif isinstance(sender, JobSeeker):
+            sender_candidate = sender 
+        elif isinstance(sender, CompanyInCharge):
+            sender_company = sender  
+            
+        if isinstance(recipient, new_user):
+            recipient_student = recipient  
+        elif isinstance(recipient, JobSeeker):
+            recipient_candidate = recipient  
+        elif isinstance(recipient, CompanyInCharge):
+            recipient_company = recipient  
+
+        message = Messages.objects.create(
+            student=sender_student,
+            candidate=sender_candidate,
+            company=sender_company,
+            content=content,
+            recipient_student=recipient_student,
+            recipient_candidate=recipient_candidate,
+            recipient_company=recipient_company
+        )
+
+        files = request.FILES.getlist('attachments') 
+        for file in files:
+            Attachment.objects.create(
+                message=message,
+                file=file
+            )
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Message sent successfully."
+        })
+
+    else:
+        return JsonResponse({
+            "status": "error",
+            "message": "Invalid request method. Please use POST."
+        })
+
+d)
+
+@csrf_exempt
+def all_inbox(request):
+    if request.method == 'GET': 
+        email = request.GET.get('email')
+        filter_type = request.GET.get('filter')
+       
+        if not email:
+            return JsonResponse({
+                "status": "error",
+                "message": "Email is required."
+            })
+
+        user = None
+        try:
+            user = new_user.objects.get(email=email)
+        except new_user.DoesNotExist:
+            try:
+                user = JobSeeker.objects.get(email=email)
+            except JobSeeker.DoesNotExist:
+                try:
+                    user = CompanyInCharge.objects.get(official_email=email)
+                except CompanyInCharge.DoesNotExist:
+                    return JsonResponse({
+                        "status": "error",
+                        "message": "User email not found in any valid models."
+                    })
+
+        if isinstance(user, new_user):
+            recipient_filter = {'recipient_student': user}
+        elif isinstance(user, JobSeeker):
+            recipient_filter = {'recipient_candidate': user}
+        elif isinstance(user, CompanyInCharge):
+            recipient_filter = {'recipient_company': user}
+        else:
+            recipient_filter = {}
+
+        if filter_type == 'read':
+            messages = Messages.objects.filter(**recipient_filter, is_read=True)
+        elif filter_type == 'unread':
+            messages = Messages.objects.filter(**recipient_filter, is_read=False)
+        else:
+            messages = Messages.objects.filter(**recipient_filter)
+
+        if not messages.exists():
+            return JsonResponse({
+                "status": "success",
+                "message": "No messages found for the user inbox."
+            })
+
+        message_list = []
+        for message in messages:
+            if message.student:
+                sender_email = message.student.email
+            elif message.candidate:
+                sender_email = message.candidate.email
+            elif message.company:
+                sender_email = message.company.official_email
+            else:
+                sender_email = None  
+
+            if message.recipient_student:
+                recipient_email = message.recipient_student.email
+            elif message.recipient_candidate:
+                recipient_email = message.recipient_candidate.email
+            elif message.recipient_company:
+                recipient_email = message.recipient_company.official_email
+            else:
+                recipient_email = None  
+
+            message_data = {
+                "sender_email": sender_email,
+                "recipient_email": recipient_email,
+                "content": message.content,
+                "timestamp": message.timestamp,
+                'is_read': message.is_read,
+                'attachments': [
+                    {
+                        'file_url': attachment.file.url,
+                        'uploaded_at': attachment.uploaded_at
+                    }
+                    for attachment in message.attachments.all()
+                ]
+            }
+            message_list.append(message_data)
+
+        # if filter_type == 'unread':
+        #     messages.filter(is_read=False).update(is_read=True)
+
+        return JsonResponse({
+            "status": "success",
+            "messages": message_list
+        })
+
+    return JsonResponse({
+        "status": "error",
+        "message": "Invalid request method. Please use GET."
+    })
+
+
+##
+
+e)
+
+@csrf_exempt
+def searchs_all(request):
+    if request.method != "GET":
+        return JsonResponse({'status': 'false', 'message': 'Invalid request method'}, status=405)
+
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return JsonResponse({'error': 'Token is missing or in an invalid format'}, status=400)
+
+        token = auth_header.split(' ')[1]
+        sender_email = request.GET.get('sender_email')
+
+        sender = None
+        if new_user.objects.filter(email=sender_email, token=token).exists():
+            sender = new_user.objects.get(email=sender_email, token=token)
+        elif JobSeeker.objects.filter(email=sender_email, token=token).exists():
+            sender = JobSeeker.objects.get(email=sender_email, token=token)
+        elif UniversityInCharge.objects.filter(official_email=sender_email, token=token).exists():
+            sender = UniversityInCharge.objects.get(official_email=sender_email, token=token)
+
+        if not sender:
+            return JsonResponse({'status': 'false', 'message': 'Sender email does not match the token'}, status=403)
+
+        query = request.GET.get('q', '').strip()
+
+        student_contacts = new_user.objects.all().values('id', 'firstname', 'lastname', 'email')
+        jobseeker_contacts = JobSeeker.objects.all().values('id', 'first_name', 'last_name', 'email')
+        college_contacts = UniversityInCharge.objects.all().values('id', 'university_name', 'official_email')
+
+        if query:
+            student_contacts = student_contacts.filter(
+                Q(firstname__icontains=query) |
+                Q(email__icontains=query)
+            )
+            jobseeker_contacts = jobseeker_contacts.filter(
+                Q(first_name__icontains=query) |
+                Q(email__icontains=query)
+            )
+            college_contacts = college_contacts.filter(
+                Q(university_name__icontains=query) |
+                Q(official_email__icontains=query)
+            )
+
+        contact_list = list(student_contacts) + list(jobseeker_contacts) + list(college_contacts)
+
+        return JsonResponse({
+            'status': 'success',
+            'contacts': contact_list if contact_list else []
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+f)
+
+@csrf_exempt
+def get_messages(request):
+    if request.method == 'GET':
+        sender_email = request.GET.get('sender_email')
+        recipient_email = request.GET.get('recipient_email')
+
+        if not sender_email or not recipient_email:
+            return JsonResponse({"status": "error", "message": "Sender email and recipient email are required."})
+
+        def get_user_and_filters(email):
+            try:
+                user = new_user.objects.get(email=email)
+                return user, Q(student=user), Q(recipient_student=user)
+            except new_user.DoesNotExist:
+                try:
+                    user = JobSeeker.objects.get(email=email)
+                    return user, Q(candidate=user), Q(recipient_candidate=user)
+                except JobSeeker.DoesNotExist:
+                    try:
+                        user = UniversityInCharge.objects.get(official_email=email)
+                        return user, Q(college=user), Q(recipient_college=user)
+                    except UniversityInCharge.DoesNotExist:
+                        return None, None, None
+
+        sender, sender_filter, sender_recipient_filter = get_user_and_filters(sender_email)
+        recipient, recipient_filter, recipient_sender_filter = get_user_and_filters(recipient_email)
+
+        if not sender or not recipient:
+            return JsonResponse({"status": "error", "message": "Sender or recipient email not found."})
+
+        messages = Messages1.objects.filter(
+            (sender_filter & recipient_sender_filter) | (recipient_filter & sender_recipient_filter)
+        )
+
+        if not messages.exists():
+            return JsonResponse({"status": "success", "message": "No messages found."})
+
+        messages.filter(is_read=False).update(is_read=True)
+
+        message_list = []
+        for message in messages:
+            sender_email = getattr(message.student, 'email', None) or getattr(message.candidate, 'email', None) or getattr(message.college, 'official_email', None)
+            recipient_email = getattr(message.recipient_student, 'email', None) or getattr(message.recipient_candidate, 'email', None) or getattr(message.recipient_college, 'official_email', None)
+
+            message_data = {
+                "sender_email": sender_email,
+                "recipient_email": recipient_email,
+                "content": message.content,
+                "timestamp": message.timestamp,
+                "is_read": message.is_read,
+                "attachments": [
+                    {"file_url": attachment.file.url, "uploaded_at": attachment.uploaded_at}
+                    for attachment in message.attachments.all()
+                ]
+            }
+            message_list.append(message_data)
+
+        return JsonResponse({"status": "success", "messages": message_list})
+
+    return JsonResponse({"status": "error", "message": "Invalid request method. Please use GET."})
+
+g)
+
+@csrf_exempt
+def send_message(request):
+    if request.method == 'POST':
+        sender_email = request.POST.get('sender_email')
+        recipient_email = request.POST.get('recipient_email')
+        content = request.POST.get('content')
+
+        if not sender_email or not recipient_email or not content:
+            return JsonResponse({
+                "status": "error",
+                "message": "Sender email, recipient email, and content are required."
+            })
+
+        sender = None
+        recipient = None
+
+        try:
+            sender = new_user.objects.get(email=sender_email)
+        except new_user.DoesNotExist:
+            try:
+                sender = JobSeeker.objects.get(email=sender_email)
+            except JobSeeker.DoesNotExist:
+                try:
+                    sender = UniversityInCharge.objects.get(official_email=sender_email)
+                except UniversityInCharge.DoesNotExist:
+                    return JsonResponse({
+                        "status": "error",
+                        "message": "Sender email not found in any valid models."
+                    })
+
+        try:
+            recipient = new_user.objects.get(email=recipient_email)
+        except new_user.DoesNotExist:
+            try:
+                recipient = JobSeeker.objects.get(email=recipient_email)
+            except JobSeeker.DoesNotExist:
+                try:
+                    recipient = UniversityInCharge.objects.get(official_email=recipient_email)
+                except UniversityInCharge.DoesNotExist:
+                    return JsonResponse({
+                        "status": "error",
+                        "message": "Recipient email not found in any valid models."
+                    })
+
+        sender_student = None
+        sender_candidate = None
+        sender_college = None
+
+        recipient_student = None
+        recipient_candidate = None
+        recipient_college = None
+
+        if isinstance(sender, new_user):
+            sender_student = sender  
+        elif isinstance(sender, JobSeeker):
+            sender_candidate = sender 
+        elif isinstance(sender, UniversityInCharge):
+            sender_college = sender  
+            
+        if isinstance(recipient, new_user):
+            recipient_student = recipient  
+        elif isinstance(recipient, JobSeeker):
+            recipient_candidate = recipient  
+        elif isinstance(recipient, UniversityInCharge):
+            recipient_college = recipient  
+
+        message = Messages1.objects.create(
+            student=sender_student,
+            candidate=sender_candidate,
+            college=sender_college,
+            content=content,
+            recipient_student=recipient_student,
+            recipient_candidate=recipient_candidate,
+            recipient_college=recipient_college
+        )
+
+        files = request.FILES.getlist('attachments') 
+        for file in files:
+            Attachment1.objects.create(
+                message=message,
+                file=file
+            )
+
+        return JsonResponse({
+            "status": "success",
+            "message": "Message sent successfully."
+        })
+
+    else:
+        return JsonResponse({
+            "status": "error",
+            "message": "Invalid request method. Please use POST."
+        })
+
+h)
+
+@csrf_exempt
+def my_inbox(request):
+    if request.method == 'GET': 
+        email = request.GET.get('email')
+        filter_type = request.GET.get('filter')
+       
+        if not email:
+            return JsonResponse({
+                "status": "error",
+                "message": "Email is required."
+            })
+
+        user = None
+        try:
+            user = new_user.objects.get(email=email)
+        except new_user.DoesNotExist:
+            try:
+                user = JobSeeker.objects.get(email=email)
+            except JobSeeker.DoesNotExist:
+                try:
+                    user = UniversityInCharge.objects.get(official_email=email)
+                except UniversityInCharge.DoesNotExist:
+                    return JsonResponse({
+                        "status": "error",
+                        "message": "User email not found in any valid models."
+                    })
+
+        if isinstance(user, new_user):
+            recipient_filter = {'recipient_student': user}
+        elif isinstance(user, JobSeeker):
+            recipient_filter = {'recipient_candidate': user}
+        elif isinstance(user, UniversityInCharge):
+            recipient_filter = {'recipient_college': user}
+        else:
+            recipient_filter = {}
+
+        if filter_type == 'read':
+            messages = Messages1.objects.filter(**recipient_filter, is_read=True)
+        elif filter_type == 'unread':
+            messages = Messages1.objects.filter(**recipient_filter, is_read=False)
+        else:
+            messages = Messages1.objects.filter(**recipient_filter)
+
+        if not messages.exists():
+            return JsonResponse({
+                "status": "success",
+                "message": "No messages found for the user inbox."
+            })
+
+        message_list = []
+        for message in messages:
+            if message.student:
+                sender_email = message.student.email
+            elif message.candidate:
+                sender_email = message.candidate.email
+            elif message.college:
+                sender_email = message.college.official_email
+            else:
+                sender_email = None  
+
+            if message.recipient_student:
+                recipient_email = message.recipient_student.email
+            elif message.recipient_candidate:
+                recipient_email = message.recipient_candidate.email
+            elif message.recipient_college:
+                recipient_email = message.recipient_college.official_email
+            else:
+                recipient_email = None  
+
+            message_data = {
+                "sender_email": sender_email,
+                "recipient_email": recipient_email,
+                "content": message.content,
+                "timestamp": message.timestamp,
+                'is_read': message.is_read,
+                'attachments': [
+                    {
+                        'file_url': attachment.file.url,
+                        'uploaded_at': attachment.uploaded_at
+                    }
+                    for attachment in message.attachments.all()
+                ]
+            }
+            message_list.append(message_data)
+
+        # if filter_type == 'unread':
+        #     messages.filter(is_read=False).update(is_read=True)
+
+        return JsonResponse({
+            "status": "success",
+            "messages": message_list
+        })
+
+    return JsonResponse({
+        "status": "error",
+        "message": "Invalid request method. Please use GET."
+    })
+
+3) urls.py ->
+
+      path('search-all/', views.search_all, name='search_contacts'),
+      path('get-all-messages/', views.getMessages, name='get_messages'),
+      path('send-message-all/', views.sendMessage, name='send_message'),
+      path('inbox-all/', views.all_inbox, name='inbox'),
+
+      path('searchs-all/', views.searchs_all, name='search_contacts'),
+      path('gets-all-messages/', views.get_messages, name='get_messages'),
+      path('sends-message-all/', views.send_message, name='send_message'),
+      path('inboxs-all/', views.my_inbox, name='inbox'),
+
+
+4) Postman Request ->
+
+a) URL -> (GET) -> http://localhost:8000/search-all/
+
+   params - 
+  
+   key                value 
+   
+   sender_email      kuranemayuresh10@gmail.com
+
+
+b) URL -> (GET) -> http://localhost:8000/get-all-messages/
+
+   params -> 
+
+   key                 value
+
+  sender_email        kuranemayuresh10@gmail.com
+  recipient_email     techwipro@gmail.com
+
+
+c) URL -> (POST) -> http://localhost:8000/send-message-all/
+
+   Body ->
+
+   Key                 value
+
+  sender_email        kuranemayuresh10@gmail.com
+  recipient_email     techwipro@gmail.com
+  content             Hi ,
+  attachments         add file
+
+
+d) URL -> (GET) -> http://localhost:8000/inbox-all/
+
+  params ->
+
+  key               value
+
+  email            kuranemayuresh10@gmail.com
+  filter           all
+
+
+e) URL -> (GET) -> http://localhost:8000/searchs-all/
+
+   params - 
+  
+   key                value 
+   
+   sender_email      tejas10@gmail.com
+
+
+f) URL -> (GET) -> http://localhost:8000/gets-all-messages/
+
+   params -> 
+
+   key                 value
+
+  sender_email        tejas10@gmail.com
+  recipient_email     mit@gmail.com
+
+
+g) URL -> (POST) -> http://localhost:8000/sends-message-all/
+
+   Body ->
+
+   Key                 value
+
+  sender_email        tejas10@gmail.com
+  recipient_email     mit@gmail.com
+  content             Hi ,
+  attachments         add file
+
+
+h) URL -> (GET) -> http://localhost:8000/inboxs-all/
+
+  params ->
+
+  key               value
+
+  email            tejas10@gmail.com
+  filter           all
+
+
+** NOTE  -> [a,b,c,d this functionalities is related to new_user, jobseeker and company_incharge , here new_user or jobseeker or compnay_incharge can able to chat with any one out of 3]
+         -> [e,f,g,h this functionalities is related to new_user, jobseeker and university_incharge, here new_user or jobseeker or university_incharge can able to chat with any one out of 3] 
+
+  
+             
+

@@ -1,0 +1,167 @@
+models.py:
+=========
+
+from django.db import models
+from django.contrib.auth.models import User
+
+class Message(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_messages')
+    text = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.sender.username} -> {self.receiver.username}: {self.text[:20]}"
+
+
+Forms.py:
+========
+
+from django import forms
+
+class MessageFilterForm(forms.Form):
+    STATUS_CHOICES = [
+        ('all', 'All'),
+        ('read', 'Read'),
+        ('unread', 'Unread'),
+    ]
+    status = forms.ChoiceField(choices=STATUS_CHOICES)
+
+
+class ContactSearchForm(forms.Form):
+    query = forms.CharField(max_length=100, required=True)
+
+
+views.py:
+========
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import Message
+from .forms import MessageFilterForm, ContactSearchForm
+from django.contrib.auth.models import User
+from django.db.models import Q
+
+@login_required
+def send_message(request):
+    if request.method == 'POST':
+        receiver_id = request.POST.get('receiver_id')
+        text = request.POST.get('text')
+        try:
+            receiver = User.objects.get(id=receiver_id)
+            message = Message.objects.create(sender=request.user, receiver=receiver, text=text)
+            return JsonResponse({"message": "Message sent successfully."})
+        except User.DoesNotExist:
+            return JsonResponse({"error": "Receiver not found."}, status=404)
+    return JsonResponse({"error": "Invalid request."}, status=400)
+
+@login_required
+def filter_messages(request):
+    form = MessageFilterForm(request.GET)
+    if form.is_valid():
+        status = form.cleaned_data['status']
+        if status == 'all':
+            messages = Message.objects.filter(receiver=request.user)
+        elif status == 'read':
+            messages = Message.objects.filter(receiver=request.user, read=True)
+        elif status == 'unread':
+            messages = Message.objects.filter(receiver=request.user, read=False)
+        else:
+            messages = []
+
+        data = [
+            {
+                "sender": message.sender.username,
+                "text": message.text,
+                "timestamp": message.timestamp,
+                "read": message.read
+            }
+            for message in messages
+        ]
+        return JsonResponse(data, safe=False)
+    return JsonResponse({"error": "Invalid form input."}, status=400)
+
+@login_required
+def get_conversation(request, contact_id):
+    try:
+        contact = User.objects.get(id=contact_id)
+        messages = Message.objects.filter(
+            Q(sender=request.user, receiver=contact) | Q(sender=contact, receiver=request.user)
+        ).order_by('timestamp')
+
+        data = [
+            {
+                "sender": message.sender.username,
+                "text": message.text,
+                "timestamp": message.timestamp,
+                "read": message.read
+            }
+            for message in messages
+        ]
+        return JsonResponse(data, safe=False)
+
+    except User.DoesNotExist:
+        return JsonResponse({"error": "Contact not found."}, status=404)
+
+@login_required
+def search_contacts(request):
+    form = ContactSearchForm(request.GET)
+    if form.is_valid():
+        query = form.cleaned_data['query']
+        contacts = User.objects.filter(username__icontains=query).exclude(id=request.user.id)
+
+        data = [
+            {
+                "id": contact.id,
+                "username": contact.username
+            }
+            for contact in contacts
+        ]
+        return JsonResponse(data, safe=False)
+    return JsonResponse({"error": "Invalid query."}, status=400)
+
+urls.py:
+=======
+
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('send-message/', views.send_message, name='send_message'),
+    path('filter-messages/', views.filter_messages, name='filter_messages'),
+    path('conversation/<int:contact_id>/', views.get_conversation, name='get_conversation'),
+	path('search-contacts/', views.search_contacts, name='search_contacts'),
+]
+
+
+POSTMAN:
+=======
+1.Send MessageSend Message:
+========================
+http://127.0.0.1:8000/chat/send-message/
+
+
+form body:
+=========
+receiver_id=2
+text=Hello! How are you?
+
+2.Filter Messages:
+===============
+http://127.0.0.1:8000/chat/filter-messages/
+
+Query Params
+
+status: Choose between all, read, or unread.
+
+
+3.Get Conversation:
+================
+http://127.0.0.1:8000/chat/conversation/<contact_id>/
+
+4.Search Contacts:
+===============
+http://127.0.0.1:8000/chat/search-contacts/
+
+query=keshav

@@ -243,40 +243,40 @@ class Candidate1Status_under_review(models.Model):
     college_id = models.IntegerField()
     job_id = models.IntegerField()
 
-class Message(models.Model):
-    company_in_charge = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE, null=True, blank=True)
-    receiptent_new_user = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True)
-    receiptent_job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True)
-    content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)
+# class Message(models.Model):
+#     company_in_charge = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE, null=True, blank=True)
+#     receiptent_new_user = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True)
+#     receiptent_job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True)
+#     content = models.TextField()
+#     timestamp = models.DateTimeField(auto_now_add=True)
+#     is_read = models.BooleanField(default=False)
 
-    def __str__(self):
-        sender_email = (
-            self.company_in_charge.official_email if self.company_in_charge else
-            (self.receiptent_new_user.email if self.receiptent_new_user else
-            (self.receiptent_job_seeker.email if self.receiptent_job_seeker else "Unknown Sender"))
-        )
-        recipient_email = (
-            self.receiptent_new_user.email if self.receiptent_new_user else
-            (self.receiptent_job_seeker.email if self.receiptent_job_seeker else "Unknown Recipient")
-        )
-        return f"{sender_email} -> {recipient_email}"
+#     def __str__(self):
+#         sender_email = (
+#             self.company_in_charge.official_email if self.company_in_charge else
+#             (self.receiptent_new_user.email if self.receiptent_new_user else
+#             (self.receiptent_job_seeker.email if self.receiptent_job_seeker else "Unknown Sender"))
+#         )
+#         recipient_email = (
+#             self.receiptent_new_user.email if self.receiptent_new_user else
+#             (self.receiptent_job_seeker.email if self.receiptent_job_seeker else "Unknown Recipient")
+#         )
+#         return f"{sender_email} -> {recipient_email}"
 
-    class Meta:
-        ordering = ['timestamp']
+#     class Meta:
+#         ordering = ['timestamp']
 
 
-class Attachment(models.Model):
-    # user = models.ForeignKey(new_user, on_delete=models.CASCADE)
-    # job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE)
-    # company_in_charge = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE)
-    message = models.ForeignKey(Message, related_name='attachments', on_delete=models.CASCADE)
-    file = models.FileField(upload_to='attachments/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+# class Attachment(models.Model):
+#     # user = models.ForeignKey(new_user, on_delete=models.CASCADE)
+#     # job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE)
+#     # company_in_charge = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE)
+#     message = models.ForeignKey(Message, related_name='attachments', on_delete=models.CASCADE)
+#     file = models.FileField(upload_to='attachments/')
+#     uploaded_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"Attachment for message {self.message.id}"
+#     def __str__(self):
+#         return f"Attachment for message {self.message.id}"
 
 class Student(models.Model):
     user = models.ForeignKey(new_user, on_delete=models.CASCADE)
@@ -529,33 +529,33 @@ class Interview(models.Model):
     def __str__(self):
         return f"{self.candidate_name} - {self.role.name} - {self.status}"
 
-class College_Message(models.Model):
-    university_in_charge = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE,null=True, blank=True,)
-    receiptent_new_user = models.ForeignKey(new_user, on_delete=models.CASCADE,null=True, blank=True)
-    receiptent_job_seeker  = models.ForeignKey(JobSeeker, on_delete=models.CASCADE,null=True, blank=True)
-    content = models.TextField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)
+# class College_Message(models.Model):
+#     university_in_charge = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE,null=True, blank=True,)
+#     receiptent_new_user = models.ForeignKey(new_user, on_delete=models.CASCADE,null=True, blank=True)
+#     receiptent_job_seeker  = models.ForeignKey(JobSeeker, on_delete=models.CASCADE,null=True, blank=True)
+#     content = models.TextField()
+#     timestamp = models.DateTimeField(auto_now_add=True)
+#     is_read = models.BooleanField(default=False)
 
-    def __str__(self):
-        sender_email = self.university_in_charge.official_email if self.university_in_charge else "Unknown Sender"
-        recipient_email = (
-            self.receiptent_new_user.email if self.receiptent_new_user else
-            (self.receiptent_job_seeker.email if self.receiptent_job_seeker else "Unknown Recipient")
-        )
-        return f"{sender_email} -> {recipient_email}"
+#     def __str__(self):
+#         sender_email = self.university_in_charge.official_email if self.university_in_charge else "Unknown Sender"
+#         recipient_email = (
+#             self.receiptent_new_user.email if self.receiptent_new_user else
+#             (self.receiptent_job_seeker.email if self.receiptent_job_seeker else "Unknown Recipient")
+#         )
+#         return f"{sender_email} -> {recipient_email}"
 
-    class Meta:
-        ordering = ['timestamp']
+#     class Meta:
+#         ordering = ['timestamp']
 
-class College_Attachment(models.Model):
-    # university_in_charge = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE)
-    message = models.ForeignKey(College_Message, related_name='attachment', on_delete=models.CASCADE)
-    file = models.FileField(upload_to='attachments/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
+# class College_Attachment(models.Model):
+#     # university_in_charge = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE)
+#     message = models.ForeignKey(College_Message, related_name='attachment', on_delete=models.CASCADE)
+#     file = models.FileField(upload_to='attachments/')
+#     uploaded_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"Attachment for message {self.message.id}"
+#     def __str__(self):
+#         return f"Attachment for message {self.message.id}"
 
 class JobSeeker_Resume(models.Model):
     job_seeker = models.ForeignKey(JobSeeker, on_delete=models.CASCADE)
@@ -706,4 +706,50 @@ class CollegeAdvertisement(models.Model):
 
     def __str__(self):
         return self.name
+    
+class Messages(models.Model):
+    student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True)
+    candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True)
+    company = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE, null=True, blank=True)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    recipient_student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True, related_name='received_messages')
+    recipient_candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True, related_name='received_messages')
+    recipient_company = models.ForeignKey(CompanyInCharge, on_delete=models.CASCADE, null=True, blank=True, related_name='received_messages')
+
+    class Meta:
+        ordering = ['timestamp']
+
+class Attachment(models.Model):
+    message = models.ForeignKey(Messages, related_name='attachments', on_delete=models.CASCADE)
+    file = models.FileField(upload_to='attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment for message {self.message.id}"
+
+class Messages1(models.Model):
+    student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True)
+    candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True)
+    college = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE, null=True, blank=True)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+    recipient_student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True, related_name='user_received_messages')
+    recipient_candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True, related_name='jobseeker_received_messages')
+    recipient_college = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE, null=True, blank=True, related_name='college_received_messages')
+
+
+    class Meta:
+        ordering = ['timestamp']
+
+
+class Attachment1(models.Model):
+    message = models.ForeignKey(Messages1, related_name='attachments', on_delete=models.CASCADE)
+    file = models.FileField(upload_to='attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment for message {self.message.id}"    
 

@@ -32,6 +32,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ['true', '1']
 
+DJANGO_SETTINGS_MODULE = os.getenv("DJANGO_SETTINGS_MODULE") 
+
 # ALLOWED_HOSTS = ['*']
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
@@ -58,6 +60,7 @@ INSTALLED_APPS = [
     'social_django',
     'rest_framework',
     'rest_framework.authtoken',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -95,6 +98,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'collegecue_project.wsgi.application'
 
+ASGI_APPLICATION = 'collegecue_project.asgi.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
