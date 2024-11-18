@@ -35,12 +35,12 @@ def home(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-def get_csrf_token(request):
-    try:
-        csrf_token = get_token(request)
-        return JsonResponse({'csrf_token': csrf_token}, status=200)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+# def get_csrf_token(request):
+#     try:
+#         csrf_token = get_token(request)
+#         return JsonResponse({'csrf_token': csrf_token}, status=200)
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class Register(View):

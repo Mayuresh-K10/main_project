@@ -4,7 +4,7 @@ from .views import  CollegeListCreateView,  CompanyListCreateView, CompanyDetail
 
 urlpatterns = [
     path('home', views.home, name='home'),
-    path('get-csrf-token/', views.get_csrf_token, name='get_csrf_token'),
+    # path('get-csrf-token/', views.get_csrf_token, name='get_csrf_token'),
 
     ## Company Dashboard
     path('company-status-counts/<int:company_in_charge_id>/', views.company_status_counts, name='company_status'),
