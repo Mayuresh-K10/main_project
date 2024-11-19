@@ -739,7 +739,7 @@ class LoginUniversityInChargeView(View):
                     'collegeid':university.id,
                     'official_email':university.official_email,
                     'university_name':university.university_name,
-                    
+
                 }, status=200)
 
             return JsonResponse({'error': 'Invalid credentials'}, status=400)
