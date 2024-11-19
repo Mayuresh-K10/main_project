@@ -35,7 +35,7 @@ class StartProctoringSessionView(View):
         try:
             auth_header = request.headers.get('Authorization', '')
             token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
-            
+
             form = StartProctoringSessionForm(json.loads(request.body.decode('utf-8')))
             if not form.is_valid():
                 return JsonResponse({'error': 'Invalid data'}, status=400)
@@ -60,7 +60,7 @@ class StartProctoringSessionView(View):
             )
 
             return JsonResponse({'success': True, 'session_id': session.id}, status=200)
-        
+
         except (json.JSONDecodeError, IndexError):
             return JsonResponse({'error': 'Invalid JSON or token'}, status=400)
         except Exception as e:
@@ -76,7 +76,7 @@ class EndProctoringSessionView(View):
             form = EndProctoringSessionForm(json.loads(request.body.decode('utf-8')))
             if not form.is_valid():
                 return JsonResponse({'error': 'Invalid data'}, status=400)
-            
+
             user = new_user.objects.filter(token=token).first()
             if not user:
                 return JsonResponse({'error': 'Invalid token'}, status=404)
@@ -117,7 +117,7 @@ class RecordProctoringEventView(View):
         try:
             auth_header = request.headers.get('Authorization', '')
             token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
-            
+
             user = new_user.objects.filter(token=token).first()
             if not user:
                 return JsonResponse({'error': 'Invalid token'}, status=404)
@@ -186,7 +186,7 @@ def submit_answer(request):
 
         question = get_object_or_404(Question.objects.only('id', 'status', 'correct_option'), exam=session.exam, question_no=question_no)
 
-        user_response = UserResponse.objects.filter(user=user, question=question, session=session).first() 
+        user_response = UserResponse.objects.filter(user=user, question=question, session=session).first()
         if clear_response:
             if user_response:
                 if user_response.selected_option == question.correct_option:
@@ -223,7 +223,6 @@ def submit_answer(request):
     except Exception as e:
         return api_response(success=False, error='An error occurred while submitting the answer', details=str(e), status=500)
 
-    
 @method_decorator(csrf_exempt, name='dispatch')
 @require_GET
 def get_session_status(request, session_id):
@@ -263,7 +262,6 @@ def get_session_status(request, session_id):
     except Exception as e:
         return api_response({'error': 'An error occurred while fetching session status',
                              'details': str(e)}, status=500)
-
 
 @method_decorator(csrf_exempt, name='dispatch')
 @require_GET
@@ -367,7 +365,6 @@ def mark_for_review(request):
     except Exception as e:
         return api_response(success=False, error='An error occurred while marking the question for review', details=str(e), status=500)
 
-
 def fetch_event_types(request):
     try:
         if request.method == 'GET':
@@ -461,7 +458,7 @@ def fetch_user_score(user, exam_id):
         user_score = UserScore.objects.filter(user=user, exam_id=exam_id).first()
         return user_score.score if user_score else 0
     except UserScore.DoesNotExist:
-        return 0 
+        return 0
 
 @csrf_exempt
 @require_POST
@@ -572,7 +569,7 @@ def get_previous_question(request, session_id, current_question_no):
             return JsonResponse({'success': False, 'error': 'No previous question available'}, status=404)
 
         return JsonResponse(previous_question, status=200)
-        
+
     except Exception as e:
         return JsonResponse({'success': False, 'error': 'An error occurred while fetching the previous question', 'details': str(e)}, status=500)
 
@@ -657,11 +654,11 @@ def mark_as_read(request, notification_id):
     try:
         notification = get_object_or_404(Notification, id=notification_id, user=user)
         form = MarkAsReadForm({'is_read': True}, instance=notification)
-        
+
         if form.is_valid():
             form.save()
             return api_response({"status": "success", "message": "Notification marked as read."})
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
@@ -682,7 +679,7 @@ def create_notification(request):
     try:
         data = json.loads(request.body)
         form = NotificationForm(data)
-        
+
         if form.is_valid():
             notification = form.save(commit=False)
             notification.user = user
@@ -697,9 +694,9 @@ def create_notification(request):
                 [user.email],
                 fail_silently=False,
             )
-            
+
             return api_response({"status": "success", "message": "Notification created successfully."}, status=201)
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except json.JSONDecodeError:
         return api_response({"status": "error", "message": "Invalid JSON data"}, status=400)
@@ -752,11 +749,11 @@ def mark_as_read1(request, notification_id):
     try:
         notification = get_object_or_404(Notification1, id=notification_id, user=user)
         form = MarkAsReadForm1({'is_read': True}, instance=notification)
-        
+
         if form.is_valid():
             form.save()
             return api_response({"status": "success", "message": "Notification marked as read."})
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
@@ -777,15 +774,15 @@ def create_notification1(request):
     try:
         data = json.loads(request.body)
         form = NotificationForm1(data)
-        
+
         if form.is_valid():
             notification = form.save(commit=False)
             notification.user = user
             notification.save()
-            
+
             subject = "New Notification Created"
             message = f"Dear {user.first_name},\n\nYou have a new notification:\n\nTitle: {notification.title}\nMessage: {notification.message}\n\nThank you for using our service."
-            
+
             send_mail(
                 subject,
                 message,
@@ -793,16 +790,14 @@ def create_notification1(request):
                 [user.email],
                 fail_silently=False,
             )
-            
+
             return api_response({"status": "success", "message": "Notification created successfully."}, status=201)
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except json.JSONDecodeError:
         return api_response({"status": "error", "message": "Invalid JSON data"}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
-
-
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -850,11 +845,11 @@ def mark_as_read2(request, notification_id):
     try:
         notification = get_object_or_404(Notification2, id=notification_id, user=user)
         form = MarkAsReadForm2({'is_read': True}, instance=notification)
-        
+
         if form.is_valid():
             form.save()
             return api_response({"status": "success", "message": "Notification marked as read."})
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
@@ -875,12 +870,12 @@ def create_notification2(request):
     try:
         data = json.loads(request.body)
         form = NotificationForm2(data)
-        
+
         if form.is_valid():
             notification = form.save(commit=False)
             notification.user = user
             notification.save()
-            
+
             subject = "New Notification Created"
             message = f"A new notification has been created:\n\nTitle: {notification.title}\nMessage: {notification.message}\n\nThank you for using our service."
             send_mail(
@@ -890,16 +885,14 @@ def create_notification2(request):
                 [user.official_email],
                 fail_silently=False,
             )
-            
+
             return api_response({"status": "success", "message": "Notification created successfully."}, status=201)
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except json.JSONDecodeError:
         return api_response({"status": "error", "message": "Invalid JSON data"}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
-
-
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -947,11 +940,11 @@ def mark_as_read3(request, notification_id):
     try:
         notification = get_object_or_404(Notification3, id=notification_id, user=user)
         form = MarkAsReadForm3({'is_read': True}, instance=notification)
-        
+
         if form.is_valid():
             form.save()
             return api_response({"status": "success", "message": "Notification marked as read."})
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
@@ -972,12 +965,12 @@ def create_notification3(request):
     try:
         data = json.loads(request.body)
         form = NotificationForm3(data)
-        
+
         if form.is_valid():
             notification = form.save(commit=False)
             notification.user = user
             notification.save()
-            
+
             subject = "New Notification Created"
             message = f"A new notification has been created:\n\nTitle: {notification.title}\nMessage: {notification.message}\n\nThank you for using our service."
             send_mail(
@@ -987,15 +980,14 @@ def create_notification3(request):
                 [user.official_email],
                 fail_silently=False,
             )
-            
+
             return api_response({"status": "success", "message": "Notification created successfully."}, status=201)
-        
+
         return api_response({"status": "error", "errors": form.errors}, status=400)
     except json.JSONDecodeError:
         return api_response({"status": "error", "message": "Invalid JSON data"}, status=400)
     except Exception as e:
         return api_response({"status": "error", "message": str(e)}, status=500)
-
 
 @csrf_exempt
 def lead_submission_view(request):
@@ -1030,22 +1022,18 @@ def lead_submission_view(request):
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=500)
 
-
-
 def fetch_targeted_audience_choices(request):
     try:
         if request.method == 'GET':
             values_list = [choice[0] for choice in Lead.TARGETED_AUDIENCE_CHOICES]
 
             return JsonResponse({'status': 'success', 'choices': values_list})
-        
+
         else:
             return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
-    
+
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-
-
 
 def fetch_page_choices(request):
     try:
@@ -1054,9 +1042,9 @@ def fetch_page_choices(request):
             values_list = [choice[0] for choice in page_choices]
 
             return JsonResponse({'status': 'success', 'choices': values_list})
-        
+
         else:
             return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
-    
+
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

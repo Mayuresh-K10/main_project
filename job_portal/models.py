@@ -706,7 +706,7 @@ class CollegeAdvertisement(models.Model):
 
     def __str__(self):
         return self.name
-    
+
 class Messages(models.Model):
     student = models.ForeignKey(new_user, on_delete=models.CASCADE, null=True, blank=True)
     candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True)
@@ -740,10 +740,8 @@ class Messages1(models.Model):
     recipient_candidate = models.ForeignKey(JobSeeker, on_delete=models.CASCADE, null=True, blank=True, related_name='jobseeker_received_messages')
     recipient_college = models.ForeignKey(UniversityInCharge, on_delete=models.CASCADE, null=True, blank=True, related_name='college_received_messages')
 
-
     class Meta:
         ordering = ['timestamp']
-
 
 class Attachment1(models.Model):
     message = models.ForeignKey(Messages1, related_name='attachments', on_delete=models.CASCADE)
@@ -751,5 +749,5 @@ class Attachment1(models.Model):
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Attachment for message {self.message.id}"    
+        return f"Attachment for message {self.message.id}"
 

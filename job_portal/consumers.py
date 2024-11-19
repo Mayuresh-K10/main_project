@@ -29,7 +29,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         message = data['message']
         sender = self.scope['user']
         receiver_username = data['receiver']
-        
+
         # Save the message to the database
         receiver = await sync_to_async(User.objects.get)(username=receiver_username)
         msg = await sync_to_async(Message.objects.create)(sender=sender, receiver=receiver, text=message)
@@ -43,7 +43,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'sender': sender.username,
                 'receiver': receiver.username,
                 'timestamp': str(msg.timestamp),
-                'read': 
+                'read':
 msg.read
 
             }
@@ -63,4 +63,4 @@ msg.read
             'message': message,
             'timestamp': timestamp,
             'read': read
-        })) 
+        }))

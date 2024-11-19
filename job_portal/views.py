@@ -5250,7 +5250,7 @@ def search_all(request):
 
         if not sender:
             return JsonResponse({'status': 'false', 'message': 'Sender email does not match the token'}, status=403)
-        
+
         query = request.GET.get('q', '').strip()
 
         student_contacts = new_user.objects.all().values('id', 'firstname', 'lastname', 'email')
@@ -5801,14 +5801,14 @@ def my_inbox(request):
             sender_email = (
                 message.student.email if message.student else 
                 message.candidate.email if message.candidate else 
-                message.college.official_email if message.college else 
+                message.college.official_email if message.college else
                 None
             )
 
             recipient_email = (
                 message.recipient_student.email if message.recipient_student else 
                 message.recipient_candidate.email if message.recipient_candidate else 
-                message.recipient_college.official_email if message.recipient_college else 
+                message.recipient_college.official_email if message.recipient_college else
                 None
             )
 

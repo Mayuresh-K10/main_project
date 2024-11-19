@@ -33,6 +33,6 @@ urlpatterns = [
     path('Company-notifications/create/', views.create_notification3, name='create_notification3'),
     path('submit-lead/', views.lead_submission_view, name='submit-lead'),
     path('fetch-targeted-audience-choices/', views.fetch_targeted_audience_choices, name='fetch_targeted_audience_choices'),
-    path('fetch-page-choices/', views.fetch_page_choices, name='fetch_page_choices'), 
+    path('fetch-page-choices/', views.fetch_page_choices, name='fetch_page_choices'),
 
 ]

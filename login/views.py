@@ -226,10 +226,10 @@ class Verify_view(View):
 
             stored_email = request.session.get('email')
             user = new_user.objects.filter(email=stored_email, token=token).first()
-            
+
             if not user:
                 return JsonResponse({'error': 'Invalid token or user not found'}, status=404)
-            
+
             if form.is_valid():
                 verify = form.save()
                 otp_entered = verify.otp
@@ -322,7 +322,7 @@ class Forgot2_view(View):
 
             if password != confirm_password:
                 return JsonResponse({'error': 'Passwords did not match'}, status=400)
-            
+
             stored_email = request.session.get('email')
             user = new_user.objects.filter(email=stored_email, token=token).first()
 
@@ -376,7 +376,7 @@ class DeleteUserAccountView(View):
         try:
             auth_header = request.headers.get('Authorization', '')
             token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
-            
+
             data = json.loads(request.body.decode('utf-8'))
             confirmation = data.get('confirmation', False)
 
@@ -697,7 +697,7 @@ class LoginCompanyInChargeView(View):
                     'official_email':company.official_email,
                     'id':company.id,
                     'company_name':company.company_name,
-                    
+
                 }, status=200)
 
             return JsonResponse({'error': 'Invalid credentials'}, status=400)
@@ -929,8 +929,8 @@ def login_job_seeker(request):
             job_seeker.token = generate_unique_token()
             job_seeker.save()
 
-            return JsonResponse({'message': 'Login successful', 
-                                 'unique_token': job_seeker.token, 
+            return JsonResponse({'message': 'Login successful',
+                                 'unique_token': job_seeker.token,
                                  'userid':job_seeker.id, 
                                  'useremail':job_seeker.email,
                                  'first_name':job_seeker.first_name
@@ -998,7 +998,7 @@ class ChangePasswordJobSeekerView(View):
 
             if not check_password(old_password, job_seeker.password):
                 return JsonResponse({'error': 'Old password is incorrect'}, status=400)
-            
+
             job_seeker.password = make_password(new_password)
             job_seeker.save()
 
@@ -1088,7 +1088,7 @@ class ChangePasswordConsultantView(View):
             auth_header = request.headers.get('Authorization')
             if not auth_header or not auth_header.startswith('Bearer '):
                 return JsonResponse({'error': 'Token is missing or invalid format'}, status=400)
-            
+
             token = auth_header.split(' ')[1]
 
             data = json.loads(request.body.decode('utf-8'))
@@ -1098,7 +1098,7 @@ class ChangePasswordConsultantView(View):
                 return JsonResponse({'error': 'New password and confirmation are required'}, status=400)
             if new_password != confirm_password:
                 return JsonResponse({'error': 'Passwords do not match'}, status=400)
-            
+
             consultant = Consultant.objects.filter(token=token).first()
             if not consultant:
                 return JsonResponse({'error': 'Invalid token'}, status=404)
@@ -1106,7 +1106,7 @@ class ChangePasswordConsultantView(View):
             consultant.password = make_password(new_password)
             consultant.save()
             return JsonResponse({'success': True, 'message': 'Password changed successfully'}, status=200)
-        
+
         except json.JSONDecodeError:
             return JsonResponse({'error': 'Invalid JSON'}, status=400)
         except Exception as e:

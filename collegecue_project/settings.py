@@ -32,7 +32,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ['true', '1']
 
-DJANGO_SETTINGS_MODULE = os.getenv("DJANGO_SETTINGS_MODULE") 
+DJANGO_SETTINGS_MODULE = os.getenv("DJANGO_SETTINGS_MODULE")
 
 # ALLOWED_HOSTS = ['*']
 
