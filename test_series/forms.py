@@ -1,5 +1,5 @@
 from django import forms
-from .models import ExamParticipant, Notification, ProctoringEvent,Notification1,Notification2,Notification3
+from .models import ExamParticipant, Lead, Notification, ProctoringEvent,Notification1,Notification2,Notification3
 
 class StartProctoringSessionForm(forms.Form):
     exam_id = forms.IntegerField()
@@ -76,3 +76,14 @@ class NotificationForm3(forms.ModelForm):
     class Meta:
         model = Notification3
         fields = ['user', 'title', 'message']
+
+class LeadForm(forms.ModelForm):
+    class Meta:
+        model = Lead
+        fields = ['name', 'email', 'mobile', 'page', 'time_duration', 'approx_cost_to_invest', 'targeted_audience']
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if Lead.objects.filter(email=email).exists():
+            raise forms.ValidationError("This email has already been used.")
+        return email        

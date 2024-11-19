@@ -103,3 +103,28 @@ class Notification3(models.Model):
 
     def __str__(self):
         return f"Notification for {self.user.username}: {self.title}"
+
+class Lead(models.Model):
+    PAGE_CHOICES = [
+        ('Your Page', 'Your Page'),
+        ('CollegeCUE', 'CollegeCUE'),
+    ]
+
+    TARGETED_AUDIENCE_CHOICES = [
+        ('Student', 'Student'),
+        ('Consultant', 'Consultant'),
+        ('Other College', 'Other College'),
+        ('Institute', 'Institute'),
+    ]
+
+    name = models.CharField(max_length=255)
+    email = models.EmailField()
+    mobile = models.CharField(max_length=15)
+    page = models.CharField(max_length=50, choices=PAGE_CHOICES)
+    time_duration = models.CharField(max_length=100)
+    approx_cost_to_invest = models.DecimalField(max_digits=10, decimal_places=2)
+    targeted_audience = models.CharField(max_length=50, choices=TARGETED_AUDIENCE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name

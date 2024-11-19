@@ -5,7 +5,7 @@ from django.middleware.csrf import get_token # type: ignore
 from django.views.decorators.csrf import csrf_exempt, csrf_protect # type: ignore
 from .utils import (send_data_to_google_sheet3,send_data_to_google_sheet4,
 send_data_to_google_sheet2,send_data_to_google_sheets)
-import secrets,json,requests, os # type: ignore
+import secrets,json,requests # type: ignore
 from .models import CompanyInCharge, Consultant, JobSeeker, UniversityInCharge, new_user
 from django.contrib.auth.hashers import make_password, check_password # type: ignore
 from django.utils.decorators import method_decorator # type: ignore
@@ -17,7 +17,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger # type:
 # from django.utils.html import format_html
 from django.core.mail import EmailMessage
 # from django.template.loader import render_to_string
-from google.oauth2 import id_token # type: ignore
+# from google.oauth2 import id_token # type: ignore
 from django.utils.crypto import get_random_string
 
 
