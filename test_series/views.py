@@ -127,7 +127,7 @@ class RecordProctoringEventView(View):
                 return JsonResponse({'error': 'Invalid data'}, status=400)
 
             session_id = form.cleaned_data['session_id']
-            session = get_object_or_404(ProctoringSession, id=session_id)
+            session = get_object_or_404(ProctoringSession, id=session_id,user=user)
 
             if ProctoringEvent.objects.filter(session=session).exists():
                 return JsonResponse({'error': 'Event for this session already recorded'}, status=400)
@@ -178,7 +178,7 @@ def submit_answer(request):
             return api_response(success=False, error='Invalid data', status=400)
 
         session_id = form.cleaned_data['session_id']
-        session = get_object_or_404(ProctoringSession.objects.only('id', 'exam'), id=session_id)
+        session = get_object_or_404(ProctoringSession.objects.only('id', 'exam'), id=session_id, user=user)
 
         question_no = form.cleaned_data['question_no']
         selected_option = form.cleaned_data['selected_option']
@@ -223,45 +223,45 @@ def submit_answer(request):
     except Exception as e:
         return api_response(success=False, error='An error occurred while submitting the answer', details=str(e), status=500)
 
-@method_decorator(csrf_exempt, name='dispatch')
-@require_GET
-def get_session_status(request, session_id):
-    try:
-        auth_header = request.headers.get('Authorization', '')
-        token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
+# @method_decorator(csrf_exempt, name='dispatch')
+# @require_GET
+# def get_session_status(request, session_id):
+#     try:
+#         auth_header = request.headers.get('Authorization', '')
+#         token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
 
-        if not token:
-            return JsonResponse({'error': 'Token is required'}, status=400)
+#         if not token:
+#             return JsonResponse({'error': 'Token is required'}, status=400)
 
-        user = new_user.objects.filter(token=token).first()
-        if not user:
-            return JsonResponse({'error': 'Invalid token'}, status=403)
+#         user = new_user.objects.filter(token=token).first()
+#         if not user:
+#             return JsonResponse({'error': 'Invalid token'}, status=403)
 
-        session = get_object_or_404(ProctoringSession, id=session_id)
+#         session = get_object_or_404(ProctoringSession, id=session_id, user=user)
 
-        questions = session.exam.questions.all()
-        total_questions = questions.count()
-        answered_questions = questions.filter(status="Answered").count()
-        not_answered_questions = questions.filter(status="Not Answered").count()
-        marked_for_review = questions.filter(status="Mark for Review").count()
-        not_visited_questions = questions.filter(status="Not Visited").count()
+#         questions = session.exam.questions.all()
+#         total_questions = questions.count()
+#         answered_questions = questions.filter(status="Answered").count()
+#         not_answered_questions = questions.filter(status="Not Answered").count()
+#         marked_for_review = questions.filter(status="Mark for Review").count()
+#         not_visited_questions = questions.filter(status="Not Visited").count()
 
-        remaining_time = session.duration - (timezone.now() - session.start_time)
+#         remaining_time = session.duration - (timezone.now() - session.start_time)
 
-        status = {
-            'answered_questions': answered_questions,
-            'not_answered_questions': not_answered_questions,
-            'marked_for_review': marked_for_review,
-            'not_visited_questions': not_visited_questions,
-            'remaining_time': remaining_time.total_seconds(),
-            'total_questions': total_questions,
-        }
+#         status = {
+#             'answered_questions': answered_questions,
+#             'not_answered_questions': not_answered_questions,
+#             'marked_for_review': marked_for_review,
+#             'not_visited_questions': not_visited_questions,
+#             'remaining_time': remaining_time.total_seconds(),
+#             'total_questions': total_questions,
+#         }
 
-        return api_response(status, status=200)
+#         return api_response(status, status=200)
 
-    except Exception as e:
-        return api_response({'error': 'An error occurred while fetching session status',
-                             'details': str(e)}, status=500)
+#     except Exception as e:
+#         return api_response({'error': 'An error occurred while fetching session status',
+#                              'details': str(e)}, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
 @require_GET
@@ -277,7 +277,7 @@ def get_question_details(request, session_id, question_no):
         if not user:
             return JsonResponse({'error': 'Invalid token'}, status=403)
 
-        session = get_object_or_404(ProctoringSession, id=session_id)
+        session = get_object_or_404(ProctoringSession, id=session_id, user=user)
         question = get_object_or_404(Question, exam=session.exam, question_no=question_no)
 
         response_data = {
@@ -301,33 +301,33 @@ def get_question_details(request, session_id, question_no):
             status=500
         )
 
-@method_decorator(csrf_exempt, name='dispatch')
-@require_GET
-def count_questions(request, exam_id):
-    try:
-        auth_header = request.headers.get('Authorization', '')
-        token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
+# @method_decorator(csrf_exempt, name='dispatch')
+# @require_GET
+# def count_questions(request, exam_id):
+#     try:
+#         auth_header = request.headers.get('Authorization', '')
+#         token = auth_header.split(' ')[1] if auth_header.startswith('Bearer ') else None
 
-        if not token:
-            return JsonResponse({'error': 'Token is required'}, status=400)
+#         if not token:
+#             return JsonResponse({'error': 'Token is required'}, status=400)
 
-        user = new_user.objects.filter(token=token).first()
-        if not user:
-            return JsonResponse({'error': 'Invalid token'}, status=403)
+#         user = new_user.objects.filter(token=token).first()
+#         if not user:
+#             return JsonResponse({'error': 'Invalid token'}, status=403)
 
-        exam = Exam.objects.filter(id=exam_id).only('id', 'name').first()
-        if not exam:
-            return api_response(success=False, error='Exam ID not found', status=404)
+#         exam = Exam.objects.filter(id=exam_id).only('id', 'name').first()
+#         if not exam:
+#             return api_response(success=False, error='Exam ID not found', status=404)
 
-        question_count = Question.objects.filter(exam=exam).count()
+#         question_count = Question.objects.filter(exam=exam).count()
 
-        if not question_count:
-            return api_response(success=False, error='No Questions found for this Exam', data={'exam_name': exam.name}, status=404)
+#         if not question_count:
+#             return api_response(success=False, error='No Questions found for this Exam', data={'exam_name': exam.name}, status=404)
 
-        return api_response(success=True, data={'question_count': question_count, 'exam_name': exam.name})
+#         return api_response(success=True, data={'question_count': question_count, 'exam_name': exam.name})
 
-    except Exception as e:
-        return api_response(success=False, error='An error occurred while counting questions', details=str(e), status=500)
+#     except Exception as e:
+#         return api_response(success=False, error='An error occurred while counting questions', details=str(e), status=500)
 
 @csrf_exempt
 @require_POST
@@ -351,7 +351,7 @@ def mark_for_review(request):
         question_no = form.cleaned_data['question_no']
         mark = form.cleaned_data['mark']
 
-        session = get_object_or_404(ProctoringSession.objects.only('id', 'exam'), id=session_id)
+        session = get_object_or_404(ProctoringSession.objects.only('id', 'exam'), id=session_id,  user=user)
         question = get_object_or_404(Question.objects.only('id', 'status'), exam=session.exam, question_no=question_no)
 
         new_status = 'Mark for Review' if mark else 'Not Answered'
@@ -422,7 +422,7 @@ def get_details(request):
             if not session_id:
                 return JsonResponse({'error': 'Session ID is required'}, status=400)
 
-            session = get_object_or_404(ProctoringSession, id=session_id)
+            session = get_object_or_404(ProctoringSession, id=session_id,user=user)
             exam = session.exam
 
             score = fetch_user_score(user, exam.id)
@@ -479,7 +479,7 @@ def submit_all_answers(request):
             session_id = form.cleaned_data['session_id']
             answers = form.cleaned_data['answers']
 
-            session = get_object_or_404(ProctoringSession, id=session_id)
+            session = get_object_or_404(ProctoringSession, id=session_id, user=user)
             user_score, _ = UserScore.objects.get_or_create(user=user, exam=session.exam)
 
             question_map = {q.question_no: q for q in session.exam.questions.all()}
@@ -525,7 +525,7 @@ def get_next_question(request, session_id, current_question_no):
         if not user:
             return JsonResponse({'error': 'Invalid token'}, status=403)
 
-        session = get_object_or_404(ProctoringSession, id=session_id)
+        session = get_object_or_404(ProctoringSession, id=session_id, user=user)
 
         next_question = (
             Question.objects.filter(exam=session.exam, question_no__gt=current_question_no)
@@ -556,7 +556,7 @@ def get_previous_question(request, session_id, current_question_no):
         if not user:
             return JsonResponse({'error': 'Invalid token'}, status=403)
 
-        session = get_object_or_404(ProctoringSession, id=session_id)
+        session = get_object_or_404(ProctoringSession, id=session_id, user=user)
 
         previous_question = (
             Question.objects.filter(exam=session.exam, question_no__lt=current_question_no)

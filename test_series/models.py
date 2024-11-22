@@ -3,7 +3,7 @@ from django.utils import timezone
 from login.models import CompanyInCharge, UniversityInCharge, new_user,JobSeeker
 
 class Exam(models.Model):
-    user = models.ForeignKey(new_user, on_delete=models.CASCADE,null=True, blank=True)
+    # user = models.ForeignKey(new_user, on_delete=models.CASCADE,null=True, blank=True)
     name = models.CharField(max_length=200)
     date = models.DateTimeField()
 
